@@ -83,35 +83,40 @@ namespace Machina
         {
             Builder.AppendLine("   " + instruction);
         }
-        public void EmitCall(string name)
+        public void EmitCall(string name, bool isVoid)
         {
             if (!Symbols.ContainsKey(name))
                 throw new Exception($"Function {name} is not declared");
             EmitInstruction("call", '"'+name+'"');
+            StackCount = Convert.ToUInt16(!isVoid);
         }
         public void EmitLabelIndented(string name)
         {
             EmitLabel("   "+name);
         }
-        string FetchRegister32Bit()
+        string FetchNextRegister32Bit()
         {
             var x = FunctionArgRegs32Bit[StackCount];
             StackCount++;
             return x;
         }
-        string FetchRegister64Bit()
+        string FetchNextRegister64Bit()
         {
             var x = FunctionArgRegs64Bit[StackCount];
             StackCount++;
             return x;
         }
-        string UnfetchRegister32Bit()
+        string FetchPreviousRegister32Bit()
         {
-            return FunctionArgRegs32Bit[--StackCount];
+            var x = FunctionArgRegs32Bit[StackCount-1];
+            StackCount--;
+            return x;
         }
-        string UnfetchRegister64Bit()
+        string FetchPreviousRegister64Bit()
         {
-            return FunctionArgRegs64Bit[--StackCount];
+            var x = FunctionArgRegs64Bit[StackCount-1];
+            StackCount--;
+            return x;
         }
         string FetchCurrentRegister32Bit()
         {
@@ -121,22 +126,22 @@ namespace Machina
         {
             return FunctionArgRegs64Bit[StackCount];
         }
-        public void EmitLoad32BitValue(string value)
+        public void EmitLoad32BitValue(int value)
         {
-            EmitInstruction("mov", FetchRegister32Bit(), value);
+            EmitInstruction("mov", FetchNextRegister32Bit(), value.ToString());
         }
-        public void EmitLoad64BitValue(string value)
+        public void EmitLoad64BitValue(long value)
         {
-            EmitInstruction("mov", FetchRegister64Bit(), value);
+            EmitInstruction("mov", FetchNextRegister64Bit(), value.ToString());
         }
         public void EmitLoadString(string value)
         {
             var name = EmitGlobal("asciz", '"'+value+'"');
-            EmitInstruction("lea", FetchRegister64Bit(), "[rip+\""+ name + "\"]");
+            EmitInstruction("lea", FetchNextRegister64Bit(), "[rip+\""+ name + "\"]");
         }
         public void EmitLoadAdress(string value)
         {
-            EmitInstruction("lea", FetchRegister64Bit(), value);
+            EmitInstruction("lea", FetchNextRegister64Bit(), value);
         }
         public void EmitSaveRSP(int size)
         {
@@ -151,14 +156,15 @@ namespace Machina
         }
         public void EmitAdd32Bit()
         {
-            var op1 = UnfetchRegister32Bit();
-            var op2 = UnfetchRegister32Bit();
+            var op1 = FetchPreviousRegister32Bit();
+            var op2 = FetchPreviousRegister32Bit();
+            StackCount++;
             EmitInstruction("add", op2, op1);
         }
         public void EmitAdd64Bit()
         {
-            var op1 = UnfetchRegister64Bit();
-            var op2 = UnfetchRegister64Bit();
+            var op1 = FetchPreviousRegister64Bit();
+            var op2 = FetchPreviousRegister64Bit();
             EmitInstruction("add", op2, op1);
         }
         public void EmitReturn()
