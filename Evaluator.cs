@@ -6,14 +6,15 @@ namespace Machina
 {
     public class Evaluator
     {
-        CodeEmitter Emitter = new();
+        CodeEmitter Emitter;
         Bytecode Bytecode;
         void Generate()
         {
 
         }
-        public Evaluator(Bytecode bytecode)
+        public Evaluator(string moduleName, Bytecode bytecode)
         {
+            Emitter = new(moduleName);
             Bytecode = bytecode;
             Generate();
         }

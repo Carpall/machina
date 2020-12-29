@@ -9,21 +9,14 @@ namespace Machina
     public class Bytecode
     {
         string ModuleName;
-        public List<Method> ModuleFunctions;
-        public List<Data> ModuleGlobals;
-        public List<CustomType> ModuleTypes;
-
-        public void InstallMethod(Method method)
+        public void InstallFunction(Data function)
         {
-            ModuleFunctions.Add(method);
         }
-        public void InstallType(CustomType type)
+        public void InstallStruct(string name)
         {
-            ModuleTypes.Add(type);
         }
-        public void InstallGlobal(Data global)
+        public void InstallGlobal()
         {
-            ModuleGlobals.Add(global);
         }
         public Bytecode(string moduleName)
         {
@@ -31,7 +24,7 @@ namespace Machina
         }
         public string CompileAOT()
         {
-            return new Evaluator(this).ToString();
+            return new Evaluator(ModuleName, this).ToString();
         }
         public void Save(string path) {
             var temp = @"C:\Users\" + Environment.UserName + @"\AppData\Local\Temp\b2c\" + ModuleName + ".c";
