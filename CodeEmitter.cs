@@ -6,36 +6,27 @@ namespace Machina
 {
     public class CodeEmitter
     {
+        StringBuilder Functions = new();
         StringBuilder TextSection = new();
         StringBuilder Builder = new();
         Dictionary<String, String> Symbols = new();
         UInt16 StackCount = 0;
         UInt16 GlobalCount = 0;
-        string[] FunctionArgRegs32Bit = { "eax", "ebx", "ecx", "edx", "esi", "edi", "r8d", "r9d", "r10d" };
-        string[] FunctionArgRegs64Bit = { "rax", "rbx", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10" };
+        string[] FunctionArgRegs8Bit =  { "al",  "bl",  "cl",  "dl",  "sil", "dil" };
+        string[] FunctionArgRegs32Bit = { "eax", "ebx", "ecx", "edx", "esi", "edi" };
+        string[] FunctionArgRegs64Bit = { "rax", "rbx", "rcx", "rdx", "rsi", "rdi" };
         public CodeEmitter(string moduleName)
         {
             TextSection.AppendLine(".text");
             TextSection.AppendLine("   .file \""+moduleName+'"');
             TextSection.AppendLine("   .intel_syntax");
             TextSection.AppendLine("   .globl main");
-            // initialize built in
-            EmitGlobal("fmt_s", "asciz", "\"%s\"");
-            Symbols.Add("io::print(str)void", null);
-            EmitAssembly(
-@"
-""io::print(str)void"":
-   push rbp
-   mov  rbp, rsp
-   sub  rsp, 24
-   mov  rdx, rax
-   lea  rcx, [rip+""fmt_s""]
-   call printf
-   xor  eax, eax
-   add  rsp, 24
-   pop  rbp
-   ret
-");
+        }
+        int RoundToStackAllignment(int size)
+        {
+            for (int i = 0; ; i++)
+                if ((size+i) % 16 == 0)
+                    return size + i;
         }
         public void EmitAssembly(string asm)
         {
@@ -94,6 +85,12 @@ namespace Machina
         {
             EmitLabel("   "+name);
         }
+        string FetchNextRegister8Bit()
+        {
+            var x = FunctionArgRegs8Bit[StackCount];
+            StackCount++;
+            return x;
+        }
         string FetchNextRegister32Bit()
         {
             var x = FunctionArgRegs32Bit[StackCount];
@@ -104,6 +101,12 @@ namespace Machina
         {
             var x = FunctionArgRegs64Bit[StackCount];
             StackCount++;
+            return x;
+        }
+        string FetchPreviousRegister8Bit()
+        {
+            var x = FunctionArgRegs8Bit[StackCount-1];
+            StackCount--;
             return x;
         }
         string FetchPreviousRegister32Bit()
@@ -117,6 +120,10 @@ namespace Machina
             var x = FunctionArgRegs64Bit[StackCount-1];
             StackCount--;
             return x;
+        }
+        string FetchCurrentRegister8Bit()
+        {
+            return FunctionArgRegs8Bit[StackCount];
         }
         string FetchCurrentRegister32Bit()
         {
@@ -134,24 +141,39 @@ namespace Machina
         {
             EmitInstruction("mov", FetchNextRegister64Bit(), value.ToString());
         }
+        public void EmitLoadVoid()
+        {
+            var top = FetchNextRegister32Bit();
+            EmitInstruction("xor", top, top);
+        }
         public void EmitLoadString(string value)
         {
             var name = EmitGlobal("asciz", '"'+value+'"');
-            EmitInstruction("lea", FetchNextRegister64Bit(), "[rip+\""+ name + "\"]");
+            EmitLoadAdress("[rip+\"" + name + "\"]");
+        }
+        public void EmitLoadTrue()
+        {
+            EmitInstruction("mov", FetchNextRegister8Bit(), "1");
+        }
+        public void EmitLoadFalse()
+        {
+            EmitInstruction("mov", FetchNextRegister8Bit(), "0");
         }
         public void EmitLoadAdress(string value)
         {
             EmitInstruction("lea", FetchNextRegister64Bit(), value);
         }
-        public void EmitSaveRSP(int size)
+        public void EmitSaveStackPointer(int size = 0)
         {
             EmitInstruction("push", "rbp");
             EmitInstruction("mov", "rbp", "rsp");
-            EmitInstruction("sub", "rsp", size.ToString());
+            if (size != 0)
+                EmitInstruction("sub", "rsp", RoundToStackAllignment(size).ToString());
         }
-        public void EmitRestoreRSP(int size)
+        public void EmitRestoreStackPointer(int size = 0)
         {
-            EmitInstruction("add", "rsp", size.ToString());
+            if (size != 0)
+                EmitInstruction("add", "rsp", RoundToStackAllignment(size).ToString());
             EmitInstruction("pop", "rbp");
         }
         public void EmitAdd32Bit()
@@ -165,7 +187,101 @@ namespace Machina
         {
             var op1 = FetchPreviousRegister64Bit();
             var op2 = FetchPreviousRegister64Bit();
+            StackCount++;
             EmitInstruction("add", op2, op1);
+        }
+        public void EmitSub32Bit()
+        {
+            var op1 = FetchPreviousRegister32Bit();
+            var op2 = FetchPreviousRegister32Bit();
+            StackCount++;
+            EmitInstruction("sub", op2, op1);
+        }
+        public void EmitSub64Bit()
+        {
+            var op1 = FetchPreviousRegister64Bit();
+            var op2 = FetchPreviousRegister64Bit();
+            StackCount++;
+            EmitInstruction("sub", op2, op1);
+        }
+        public void EmitMul32Bit()
+        {
+            var op1 = FetchPreviousRegister32Bit();
+            var op2 = FetchPreviousRegister32Bit();
+            StackCount++;
+            EmitInstruction("imul", op2, op1);
+        }
+        public void EmitMul64Bit()
+        {
+            var op1 = FetchPreviousRegister64Bit();
+            var op2 = FetchPreviousRegister64Bit();
+            StackCount++;
+            EmitInstruction("imul", op2, op1);
+        }
+        public void EmitDiv32Bit()
+        {
+            var op1 = FetchPreviousRegister32Bit();
+            var op2 = FetchPreviousRegister32Bit();
+            StackCount++;
+            EmitInstruction("idiv", op2, op1);
+        }
+        public void EmitDiv64Bit()
+        {
+            var op1 = FetchPreviousRegister64Bit();
+            var op2 = FetchPreviousRegister64Bit();
+            StackCount++;
+            EmitInstruction("idiv", op2, op1);
+        }
+        public void EmitLoadMem32Bit(int index)
+        {
+            EmitInstruction("mov", FetchNextRegister32Bit(), "[rbp-" + index + "]");
+        }
+        public void EmitLoadMem64Bit(int index)
+        {
+            EmitInstruction("mov", FetchNextRegister64Bit(), "[rbp-" + index + "]");
+        }
+        public void EmitStoreMem32Bit(int index)
+        {
+            EmitInstruction("mov", "[rbp-" + index + "]", FetchPreviousRegister32Bit());
+        }
+        public void EmitStoreMem64Bit(int index)
+        {
+            EmitInstruction("mov", "[rbp-" + index + "]", FetchPreviousRegister64Bit());
+        }
+        public void EmitCompareEQ()
+        {
+            var op1 = FetchPreviousRegister32Bit();
+            var op2 = FetchPreviousRegister32Bit();
+            EmitInstruction("cmp", op2, op1);
+            EmitInstruction("sete", FetchNextRegister8Bit());
+        }
+        public void EmitCompareNEQ()
+        {
+            var op1 = FetchPreviousRegister32Bit();
+            var op2 = FetchPreviousRegister32Bit();
+            EmitInstruction("cmp", op2, op1);
+            EmitInstruction("setne", FetchNextRegister8Bit());
+        }
+        public void EmitCompareL()
+        {
+            var op1 = FetchPreviousRegister32Bit();
+            var op2 = FetchPreviousRegister32Bit();
+            EmitInstruction("cmp", op2, op1);
+            EmitInstruction("setl", FetchNextRegister8Bit());
+        }
+        public void EmitCompareG()
+        {
+            var op1 = FetchPreviousRegister32Bit();
+            var op2 = FetchPreviousRegister32Bit();
+            EmitInstruction("cmp", op2, op1);
+            EmitInstruction("setg", FetchNextRegister8Bit());
+        }
+        public void EmitJumpTrue()
+        {
+            var op1 = FetchPreviousRegister32Bit();
+            var op2 = FetchPreviousRegister32Bit();
+            EmitInstruction("cmp", op2, op1);
+            EmitInstruction("setg", FetchNextRegister8Bit());
         }
         public void EmitReturn()
         {
@@ -174,6 +290,7 @@ namespace Machina
         public override string ToString()
         {
             TextSection.Append(Builder.ToString());
+            TextSection.Append(Functions.ToString());
             return TextSection.ToString();
         }
     }
