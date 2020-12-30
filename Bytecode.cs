@@ -125,29 +125,25 @@ namespace Machina
             var model = new Function("io::print(str)void", "void", 0);
             // io
             // void print(str)
-            model.AddParameter("text", "str", 8, true);
+            model.AddParameter("text", 8);
             model.AddInstruction(OpCodes.UnsafeAsm, printstrvoid);
             model.AddInstruction(OpCodes.UnsafeEmitGlobal, new Tuple<string, string, string>("@fmt_s", "asciz","\"%s\""));
             GlobalMembers.Add("io::print(str)void", model);
             // void println(str)
             model = new Function("io::println(str)void", "void", 0);
-            model.AddParameter("text", "str", 8, true);
             model.AddInstruction(OpCodes.UnsafeAsm, printlnstrvoid);
             GlobalMembers.Add("io::println(str)void", model);
             // void print(i32)
             model = new Function("io::print(i32)void", "void", 0);
-            model.AddParameter("num", "i32", 8, true);
             model.AddInstruction(OpCodes.UnsafeAsm, printi32void);
             model.AddInstruction(OpCodes.UnsafeEmitGlobal, new Tuple<string, string, string>("@fmt_d", "asciz", "\"%d\""));
             GlobalMembers.Add("io::print(i32)void", model);
             // void print(chr)
             model = new Function("io::print(chr)void", "void", 0);
-            model.AddParameter("ascii", "chr", 8, true);
             model.AddInstruction(OpCodes.UnsafeAsm, printchrvoid);
             GlobalMembers.Add("io::print(chr)void", model);
             // i32 shell(str)
             model = new Function("io::shell(str)i32", "i32", 0);
-            model.AddParameter("prompt", "str", 8, true);
             model.AddInstruction(OpCodes.UnsafeAsm, shellstri32);
             GlobalMembers.Add("io::shell(str)i32", model);
             // str readln()
@@ -161,17 +157,14 @@ namespace Machina
             // mem
             // u32 getsize(unknow*)
             model = new Function("mem::getsize(unknow*)u32", "u32", 0);
-            model.AddParameter("block", "unknow", 8, true);
             model.AddInstruction(OpCodes.UnsafeAsm, getsizeunknowptru32);
             GlobalMembers.Add("mem::getsize(unknow*)u32", model);
             // void dealloc(unknow*)
             model = new Function("mem::dealloc(unknow*)void", "void", 0);
-            model.AddParameter("block", "unknow", 8, true);
             model.AddInstruction(OpCodes.UnsafeAsm, deallocunknowptrvoid);
             GlobalMembers.Add("mem::dealloc(unknow*)void", model);
             // unknow* alloc(u32)
-            model = new Function("mem::alloc(u32)unknow*", "unknow", 0, true);
-            model.AddParameter("size", "u32", 4, false);
+            model = new Function("mem::alloc(u32)unknow*", "unknow", 0);
             model.AddInstruction(OpCodes.UnsafeAsm, allocu32unknowptr);
             GlobalMembers.Add("mem::alloc(u32)unknow*", model);
         }

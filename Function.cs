@@ -7,20 +7,16 @@ namespace Machina
     public struct Variable
     {
         public readonly String Name;
-        public readonly String Type;
         public readonly UInt16 Size;
-        public readonly Boolean IsPointer;
         public UInt16 MemoryIndex;
-        public void SetMemoryIndex(ushort index)
+        public void SetMemoryIndex(int index)
         {
-            MemoryIndex = index;
+            MemoryIndex = (ushort)index;
         }
-        public Variable(string name, string type, ushort size, bool isPointer)
+        public Variable(string name, ushort size)
         {
             Name = name;
-            Type = type;
             Size = size;
-            IsPointer = isPointer;
             MemoryIndex = 0;
         }
     }
@@ -28,7 +24,6 @@ namespace Machina
     {
         public readonly String Name;
         public readonly String ReturnType;
-        public readonly Boolean IsPointer;
         public readonly List<Variable> Parameters;
         public readonly List<Instruction> Body;
         public readonly Boolean IsGeneric;
@@ -39,45 +34,39 @@ namespace Machina
         {
             GenericTypes = types;
         }
-        public Function(string name, string retType, ushort allocSize, bool isPointer = false)
+        public Function(string name, string retType, ushort allocSize)
         {
             Name = name;
             AllocationSize = allocSize;
             ReturnType = retType;
-            IsPointer = isPointer;
             Parameters = new();
             Body = new();
             IsGeneric = false;
             GenericNames = null;
             GenericTypes = null;
         }
-        public Function(string name, string retType, ushort allocSize, bool isPointer = false, params string[] genericNames)
+        public Function(string name, string retType, ushort allocSize, params string[] genericNames)
         {
             Name = name;
             AllocationSize = allocSize;
             ReturnType = retType;
-            IsPointer = isPointer;
             Parameters = new();
             Body = new();
             IsGeneric = true;
             GenericNames = genericNames;
             GenericTypes = null;
         }
-        public void AddParameter(string name, string type, ushort size, bool isPointer)
+        public void AddParameter(string name, ushort size)
         {
-            Parameters.Add(new(name, type, size, isPointer));
+            Parameters.Add(new(name, size));
         }
         public void PopInstruction()
         {
             Body.RemoveAt(Body.Count-1);
         }
-        public void AddInstruction(OpCodes opcode, object arg)
+        public void AddInstruction(OpCodes opcode, params object[] arg)
         {
             Body.Add(new(opcode, arg));
-        }
-        public void AddInstruction(OpCodes opcode)
-        {
-            Body.Add(new(opcode, null));
         }
     }
 }

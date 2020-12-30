@@ -1,19 +1,28 @@
 ﻿using Machina;
 using System;
+using System.IO;
 using static System.Console;
 
-var bt = new Bytecode("file.s");                              // instance of a bytecode builder <moduleName>
+var bt = new Bytecode("file.s");
 
-Function main = new("main", "void", 4);                       // instance of a function builder <name> <type> <allocationSize1>
-main.AddParameter("args", "[str]", 8, true);                  // add a parameter declaration <name> <type> <size> <isPointer>
+Function main = new("main", "void", 16);
+main.AddParameter("args", 8);
 
 // function body
-main.AddInstruction(OpCodes.Enter);                           // init the function in a safe way
-main.AddInstruction(OpCodes.LoadString, "Hello World");       // load a string
-main.AddInstruction(OpCodes.Call, "io::println(str)void");    // call std method (hand written)
-main.AddInstruction(OpCodes.Ret);                             // break the function executing and restore the stack pointer
+main.AddInstruction(OpCodes.Enter);
+main.AddInstruction(OpCodes.LoadMem, "args");
+main.AddInstruction(OpCodes.LoadArrayElem, 8, 1);
+main.AddInstruction(OpCodes.StoreMem, "arg", 8);
+main.AddInstruction(OpCodes.LoadMem, "arg");
+main.AddInstruction(OpCodes.Call, "io::print(str)void");
+main.AddInstruction(OpCodes.Ret);
 
-bt.InstallFunction(main);                                     // install the function model to the bytecode image
+// func main(args: [str]): ? {
+//   var arg: str = args[1];
+//   io::print(arg);
+// }
 
-bt.Save($"C:/Users/{Environment.UserName}/Desktop");          // saving the file
+bt.InstallFunction(main);
+
+bt.Save($"C:/Users/{Environment.UserName}/Desktop");
 //WriteLine(bt.CompileAOT());

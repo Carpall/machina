@@ -7,8 +7,8 @@ namespace Machina
     public struct Instruction
     {
         public readonly OpCodes OpCode;
-        public readonly Object Argument;
-        public Instruction(OpCodes opcode, object arg)
+        public readonly Object[] Argument;
+        public Instruction(OpCodes opcode, object[] arg)
         {
             OpCode = opcode;
             Argument = arg;
@@ -16,11 +16,14 @@ namespace Machina
     }
     public enum OpCodes
     {
+        LoadArrayElem,
         UnsafeAsm,
         Call,
         Ret,
         UnsafeEmitGlobal,
         LoadString,
-        Enter
+        Enter,
+        LoadMem,
+        StoreMem
     }
 }

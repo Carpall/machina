@@ -21,8 +21,8 @@ namespace Machina
             TextSection.AppendLine(".text");
             TextSection.AppendLine("   .file \""+moduleName+'"');
             TextSection.AppendLine("   .intel_syntax");
-            TextSection.AppendLine("   .globl main");
-
+            TextSection.AppendLine("   .globl "+Evaluator.EntryPointName);
+            
             InitializeBuiltIns();
         }
         void InitializeBuiltIns()
@@ -43,6 +43,11 @@ namespace Machina
             for (int i = 0; ; i++)
                 if ((size+i) % 16 == 0)
                     return size + i;
+        }
+        public void EmitLoadElemArray(int baseTypeSize, int index)
+        {
+            var top = FetchPreviousRegister64Bit();
+            EmitInstruction("mov", FetchNextRegister64Bit(), '['+top+'+'+(index*baseTypeSize).ToString()+']');
         }
         public void EmitAssembly(string asm)
         {
@@ -67,13 +72,13 @@ namespace Machina
             TextSection.AppendLine("   \"" + name + "\": ." + type + " " + value);
             TextSection.AppendLine("   .globl \"" + name + '"');
         }
-        public void EmitLabel(string name)
+        public void EmitLabel(string name, bool isEntryPoint = false)
         {
             if (Symbols.ContainsKey(name.Trim()) && Symbols[name] != "std")
                 throw new Exception($"Label {name} is already declared, or is the name of a function");
             if (!Symbols.ContainsKey(name.Trim()) || Symbols[name] != "std")
                 Symbols.Add(name.Trim(), null);
-            Builder.AppendLine((name == "main" ? name : '"'+name+'"')+ ":");
+            Builder.AppendLine((isEntryPoint ? name : '"'+name+'"')+ ":");
         }
         public void EmitInstruction(string instruction, string op1, string op2, string op3)
         {
@@ -91,11 +96,11 @@ namespace Machina
         {
             Builder.AppendLine("   " + instruction);
         }
-        public void EmitCall(string name, bool isVoid = false)
+        public void EmitCall(string name, bool isVoid = false, bool isEntryPoint = false)
         {
             if (!Symbols.ContainsKey(name))
                 throw new Exception($"Function {name} is not declared");
-            EmitInstruction("call", '"'+name+'"');
+            EmitInstruction("call", (isEntryPoint ? name : '"'+name+'"'));
             StackCount = Convert.ToUInt16(!isVoid);
         }
         public void EmitLabelIndented(string name)
