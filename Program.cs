@@ -1,16 +1,19 @@
 ﻿using Machina;
 using System;
-using System.Diagnostics;
-using System.IO;
 using static System.Console;
 
-var emitter = new CodeEmitter("file.s");
-emitter.EmitLabel("main");
-emitter.EmitSaveStackPointer();
-emitter.EmitRestoreStackPointer();
-emitter.EmitReturn();
+var bt = new Bytecode("file.s");                              // instance of a bytecode builder <moduleName>
 
-WriteLine(emitter.ToString());
+Function main = new("main", "void", 4);                       // instance of a function builder <name> <type> <allocationSize1>
+main.AddParameter("args", "[str]", 8, true);                  // add a parameter declaration <name> <type> <size> <isPointer>
 
-// Bytecode bt = new("test");
-// WriteLine(bt.CompileAOT());
+// function body
+main.AddInstruction(OpCodes.Enter);                           // init the function in a safe way
+main.AddInstruction(OpCodes.LoadString, "Hello World");       // load a string
+main.AddInstruction(OpCodes.Call, "io::println(str)void");    // call std method (hand written)
+main.AddInstruction(OpCodes.Ret);                             // break the function executing and restore the stack pointer
+
+bt.InstallFunction(main);                                     // install the function model to the bytecode image
+
+bt.Save($"C:/Users/{Environment.UserName}/Desktop");          // saving the file
+//WriteLine(bt.CompileAOT());

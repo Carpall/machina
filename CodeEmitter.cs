@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Machina
 {
     public class CodeEmitter
     {
+        Dictionary<String, String> Symbols = new();
         StringBuilder Functions = new();
         StringBuilder TextSection = new();
         StringBuilder Builder = new();
-        Dictionary<String, String> Symbols = new();
         UInt16 StackCount = 0;
         UInt16 GlobalCount = 0;
         string[] FunctionArgRegs8Bit =  { "al",  "bl",  "cl",  "dl",  "sil", "dil" };
@@ -21,6 +22,21 @@ namespace Machina
             TextSection.AppendLine("   .file \""+moduleName+'"');
             TextSection.AppendLine("   .intel_syntax");
             TextSection.AppendLine("   .globl main");
+
+            InitializeBuiltIns();
+        }
+        void InitializeBuiltIns()
+        {
+            Symbols.Add("io::print(str)void", "std");
+            Symbols.Add("io::println(str)void", "std");
+            Symbols.Add("io::print(i32)void", "std");
+            Symbols.Add("io::print(chr)void", "std");
+            Symbols.Add("io::shell(str)i32", "std");
+            Symbols.Add("io::read()chr", "std");
+            Symbols.Add("io::readln()str", "std");
+            Symbols.Add("mem::alloc(u32)unknow*", "std");
+            Symbols.Add("mem::dealloc(unknow*)void", "std");
+            Symbols.Add("mem::getsize(unknow*)u32", "std");
         }
         int RoundToStackAllignment(int size)
         {
@@ -53,10 +69,11 @@ namespace Machina
         }
         public void EmitLabel(string name)
         {
-            if (Symbols.ContainsKey(name.Trim()))
+            if (Symbols.ContainsKey(name.Trim()) && Symbols[name] != "std")
                 throw new Exception($"Label {name} is already declared, or is the name of a function");
-            Symbols.Add(name, null);
-            Builder.AppendLine(name + ":");
+            if (!Symbols.ContainsKey(name.Trim()) || Symbols[name] != "std")
+                Symbols.Add(name.Trim(), null);
+            Builder.AppendLine((name == "main" ? name : '"'+name+'"')+ ":");
         }
         public void EmitInstruction(string instruction, string op1, string op2, string op3)
         {
@@ -74,7 +91,7 @@ namespace Machina
         {
             Builder.AppendLine("   " + instruction);
         }
-        public void EmitCall(string name, bool isVoid)
+        public void EmitCall(string name, bool isVoid = false)
         {
             if (!Symbols.ContainsKey(name))
                 throw new Exception($"Function {name} is not declared");
@@ -83,7 +100,7 @@ namespace Machina
         }
         public void EmitLabelIndented(string name)
         {
-            EmitLabel("   "+name);
+            EmitLabel("   \""+name+'"');
         }
         string FetchNextRegister8Bit()
         {
@@ -158,6 +175,12 @@ namespace Machina
         public void EmitLoadFalse()
         {
             EmitInstruction("mov", FetchNextRegister8Bit(), "0");
+        }
+        public void EmitStoreArgs(params int[] indexes)
+        {
+            StackCount = Convert.ToUInt16(indexes.Length);
+            for (int i = indexes.Length-1; i >= 0; i--)
+                EmitStoreMem64Bit(indexes[i]);
         }
         public void EmitLoadAdress(string value)
         {
@@ -248,6 +271,10 @@ namespace Machina
         {
             EmitInstruction("mov", "[rbp-" + index + "]", FetchPreviousRegister64Bit());
         }
+        public void EmitAllocARGV()
+        {
+            EmitInstruction("mov", "[rbp-8]", "rdx");
+        }
         public void EmitCompareEQ()
         {
             var op1 = FetchPreviousRegister32Bit();
@@ -275,6 +302,10 @@ namespace Machina
             var op2 = FetchPreviousRegister32Bit();
             EmitInstruction("cmp", op2, op1);
             EmitInstruction("setg", FetchNextRegister8Bit());
+        }
+        public void EmitJump(string label)
+        {
+            EmitInstruction("jmp", label);
         }
         public void EmitJumpTrue()
         {
