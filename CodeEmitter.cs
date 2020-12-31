@@ -10,6 +10,7 @@ namespace Machina
         StringBuilder Functions = new();
         StringBuilder TextSection = new();
         StringBuilder Builder = new();
+        Dictionary<string, string> GlobalSymbols = new();
         UInt16 StackCount = 0;
         UInt16 GlobalCount = 0;
         string[] FunctionArgRegs8Bit =  { "al",  "bl",  "cl",  "dl",  "sil", "dil" };
@@ -42,7 +43,10 @@ namespace Machina
         public string EmitGlobal(string type, string value)
         {
             var symbol = "%c" + type + "=" + value;
+            if (GlobalSymbols.ContainsKey(symbol))
+                return GlobalSymbols[symbol];
             var name = "%c" + type + (++GlobalCount);
+            GlobalSymbols.Add(symbol, name);
             TextSection.AppendLine("   \""+name+"\": ."+type+" "+value);
             TextSection.AppendLine("   .globl \""+name+'"');
             return name;
@@ -84,6 +88,10 @@ namespace Machina
         public void EmitInstruction(string instruction, string op1, string op2)
         {
             Builder.AppendLine("   " + instruction + " " + op1 + ", " + op2);
+        }
+        public void EmitRestoreRegister()
+        {
+            EmitInstruction("pop", FetchNextRegister64Bit());
         }
         public void EmitInstruction(string instruction, string op1)
         {
@@ -157,6 +165,10 @@ namespace Machina
         public void EmitLoad32BitValue(int value)
         {
             EmitInstruction("mov", FetchNextRegister32Bit(), value.ToString());
+        }
+        public void EmitSaveRegister()
+        {
+            EmitInstruction("push", FetchPreviousRegister64Bit());
         }
         public void EmitLoad64BitValue(long value)
         {

@@ -59,12 +59,6 @@ namespace Machina
                                 Emitter.EmitStoreArgs(memIndexCount);
                             }
                         break;
-                    case OpCodes.LoadFunctionPointer:
-                        Emitter.EmitLoadFunctionPointer(i.Argument[0].ToString());
-                        break;
-                    case OpCodes.CallPointer:
-                        Emitter.EmitCallPointer();
-                        break;
                     case OpCodes.StoreArrayElem:
                         Emitter.EmitStoreElemArray((int)i.Argument[0]);
                         break;
@@ -76,6 +70,12 @@ namespace Machina
                     case OpCodes.CallInstance:
                         var method = GetMethodFromName(((StructType)Bytecode.GlobalMembers[i.Argument[0].ToString()]).Methods, i.Argument[1].ToString());
                         Emitter.EmitCall(i.Argument[0].ToString()+'.'+method.Name.ToString(), method.ReturnType == "void");
+                        break;
+                    case OpCodes.Push:
+                        Emitter.EmitSaveRegister();
+                        break;
+                    case OpCodes.Pop:
+                        Emitter.EmitRestoreRegister();
                         break;
                     case OpCodes.LoadMem:
                         Emitter.EmitLoadMem64Bit(localVariables[i.Argument[0].ToString()].MemoryIndex);

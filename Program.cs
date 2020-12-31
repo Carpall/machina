@@ -11,8 +11,11 @@ Function main = new("main", "void", 8);
 main.AddParameter("args", 8);
 
 main.AddInstruction(OpCodes.Enter);
-main.AddInstruction(OpCodes.LoadString, "Ciao Mondo");
-main.AddInstruction(OpCodes.CallPointer);
+main.AddInstruction(OpCodes.LoadString, "ciao");
+main.AddInstruction(OpCodes.Push);
+main.AddInstruction(OpCodes.LoadInt, 10);
+main.AddInstruction(OpCodes.Pop);
+main.AddInstruction(OpCodes.LoadInt, 10);
 main.AddInstruction(OpCodes.Ret);
 
 bt.InstallFunction(main);

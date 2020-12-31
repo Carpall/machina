@@ -35,7 +35,7 @@ namespace Machina
         CallInstance,
         AddInt,
         LoadMemPointer,
-        LoadFunctionPointer,
-        CallPointer
+        Push,
+        Pop,
     }
 }
