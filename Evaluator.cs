@@ -52,6 +52,13 @@ namespace Machina
                                 Emitter.EmitStoreArgs(memIndexCount);
                             }
                         break;
+                    case OpCodes.StoreArrayElem:
+                        Emitter.EmitStoreElemArray((int)i.Argument[0]);
+                        break;
+                    case OpCodes.LoadArray:
+                        Emitter.EmitLoad32BitValue(((int)i.Argument[0])*((int)i.Argument[1]));
+                        Emitter.EmitCall("mem::alloc(u32)unknow*");
+                        break;
                     case OpCodes.LoadMem:
                         Emitter.EmitLoadMem64Bit(localVariables[i.Argument[0].ToString()].MemoryIndex);
                         break;

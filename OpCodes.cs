@@ -29,6 +29,8 @@ namespace Machina
         MemDeclare,
         LoadInt,
         StoreField,
-        LoadField
+        LoadField,
+        StoreArrayElem,
+        LoadArray
     }
 }

@@ -66,6 +66,13 @@ namespace Machina
             TextSection.AppendLine("   .globl \""+name+'"');
             return name;
         }
+        public void EmitStoreElemArray(int baseTypeSize)
+        {
+            var value = FetchPreviousRegister64Bit();
+            var index = FetchPreviousRegister64Bit();
+            EmitInstruction("mov", '[' + FetchPreviousRegister64Bit() + '+' + (baseTypeSize).ToString() + '*' + index + ']', value);
+            StackCount++;
+        }
         public void EmitGlobal(string name, string type, string value)
         {
             if (Symbols.ContainsKey(name))
