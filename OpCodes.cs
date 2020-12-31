@@ -31,6 +31,11 @@ namespace Machina
         StoreField,
         LoadField,
         StoreArrayElem,
-        LoadArray
+        LoadArray,
+        CallInstance,
+        AddInt,
+        LoadMemPointer,
+        LoadFunctionPointer,
+        CallPointer
     }
 }

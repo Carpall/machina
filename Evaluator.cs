@@ -19,6 +19,13 @@ namespace Machina
             }
             throw new Exception("Undeclared field '"+fieldName+'\'');
         }
+        Function GetMethodFromName(List<Function> methods, string methodName)
+        {
+            for (int h = 0; h < methods.Count; h++)
+                if (methods[h].Name == methodName)
+                    return methods[h];
+            throw new Exception("Undeclared method '" + methodName + '\'');
+        }
         void GenerateFunction(Function function, bool isEntryPoint = false)
         {
             Dictionary<string, Variable> localVariables = new();
@@ -52,12 +59,23 @@ namespace Machina
                                 Emitter.EmitStoreArgs(memIndexCount);
                             }
                         break;
+                    case OpCodes.LoadFunctionPointer:
+                        Emitter.EmitLoadFunctionPointer(i.Argument[0].ToString());
+                        break;
+                    case OpCodes.CallPointer:
+                        Emitter.EmitCallPointer();
+                        break;
                     case OpCodes.StoreArrayElem:
                         Emitter.EmitStoreElemArray((int)i.Argument[0]);
                         break;
                     case OpCodes.LoadArray:
-                        Emitter.EmitLoad32BitValue(((int)i.Argument[0])*((int)i.Argument[1]));
+                        Emitter.EmitLoad32BitValue((int)i.Argument[0]);
+                        Emitter.EmitMul32Bit();
                         Emitter.EmitCall("mem::alloc(u32)unknow*");
+                        break;
+                    case OpCodes.CallInstance:
+                        var method = GetMethodFromName(((StructType)Bytecode.GlobalMembers[i.Argument[0].ToString()]).Methods, i.Argument[1].ToString());
+                        Emitter.EmitCall(i.Argument[0].ToString()+'.'+method.Name.ToString(), method.ReturnType == "void");
                         break;
                     case OpCodes.LoadMem:
                         Emitter.EmitLoadMem64Bit(localVariables[i.Argument[0].ToString()].MemoryIndex);
@@ -76,6 +94,12 @@ namespace Machina
                         break;
                     case OpCodes.LoadArrayElem:
                         Emitter.EmitLoadElemArray((int)i.Argument[0]);
+                        break;
+                    case OpCodes.AddInt:
+                        Emitter.EmitAdd64Bit();
+                        break;
+                    case OpCodes.LoadMemPointer:
+                        Emitter.EmitLoadMemPointer(localVariables[i.Argument[0].ToString()].MemoryIndex);
                         break;
                     case OpCodes.UnsafeAsm:
                         Emitter.EmitAssembly(i.Argument[0].ToString());
@@ -123,10 +147,7 @@ namespace Machina
             if (structType.Name == "void")
                 throw new Exception("Cannot install a struct with a name of a built in type");
             for (int i = 0; i < structType.Methods.Count; i++)
-            {
-                structType.Methods[i].SetName(structType.Name + '.' + structType.Methods[i].Name);
                 GenerateFunction(structType.Methods[i]);
-            }
         }
         public Evaluator(string moduleName, Bytecode bytecode)
         {
