@@ -24,6 +24,11 @@ namespace Machina
         LoadString,
         Enter,
         LoadMem,
-        StoreMem
+        StoreMem,
+        LoadInstance,
+        MemDeclare,
+        LoadInt,
+        StoreField,
+        LoadField
     }
 }

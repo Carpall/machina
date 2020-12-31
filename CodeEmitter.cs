@@ -44,10 +44,12 @@ namespace Machina
                 if ((size+i) % 16 == 0)
                     return size + i;
         }
-        public void EmitLoadElemArray(int baseTypeSize, int index)
+        public void EmitLoadElemArray(int baseTypeSize)
         {
+            StackCount--;
             var top = FetchPreviousRegister64Bit();
-            EmitInstruction("mov", FetchNextRegister64Bit(), '['+top+'+'+(index*baseTypeSize).ToString()+']');
+            EmitInstruction("mov", FetchNextRegister64Bit(), '['+top+'+'+(baseTypeSize).ToString()+'*'+FetchNextRegister64Bit()+']');
+            StackCount--;
         }
         public void EmitAssembly(string asm)
         {
@@ -83,6 +85,16 @@ namespace Machina
         public void EmitInstruction(string instruction, string op1, string op2, string op3)
         {
             Builder.AppendLine("   " + instruction + " " + op1 + ", " + op2 + ", " + op3);
+        }
+        public void EmitStoreField(int sizeCounts)
+        {
+            var top = FetchPreviousRegister64Bit();
+            EmitInstruction("mov", '['+FetchPreviousRegister64Bit()+'+'+sizeCounts+']', top);
+        }
+        public void EmitLoadField(int sizeCounts)
+        {
+            var top = FetchPreviousRegister64Bit();
+            EmitInstruction("mov", top, '[' + FetchCurrentRegister64Bit() + '+' + sizeCounts + ']');
         }
         public void EmitInstruction(string instruction, string op1, string op2)
         {

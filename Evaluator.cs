@@ -8,6 +8,17 @@ namespace Machina
         public const string EntryPointName = "main";
         CodeEmitter Emitter;
         Bytecode Bytecode;
+        ushort GetMemoryIndexFromFieldName(List<Variable> fields, string fieldName)
+        {
+            ushort memIndex = 0;
+            for (int h = 0; h < fields.Count; h++)
+            {
+                memIndex += fields[h].Size;
+                if (fields[h].Name == fieldName)
+                    return memIndex;
+            }
+            throw new Exception("Undeclared field '"+fieldName+'\'');
+        }
         void GenerateFunction(Function function, bool isEntryPoint = false)
         {
             Dictionary<string, Variable> localVariables = new();
@@ -24,7 +35,7 @@ namespace Machina
                         Emitter.EmitCall(f.Name, f.ReturnType == "void", f.Name == EntryPointName);
                         break;
                     case OpCodes.Enter:
-                        Emitter.EmitSaveStackPointer(function.AllocationSize);
+                        Emitter.EmitSaveStackPointer(function.AllocationSize + function.ParametersAllocationSize);
                         if (isEntryPoint)
                         {
                             var argv = function.Parameters[0];
@@ -44,23 +55,34 @@ namespace Machina
                     case OpCodes.LoadMem:
                         Emitter.EmitLoadMem64Bit(localVariables[i.Argument[0].ToString()].MemoryIndex);
                         break;
+                    case OpCodes.MemDeclare:
+                        var size = Convert.ToUInt16(i.Argument[1]);
+                        var loc = new Variable(i.Argument[0].ToString(), size);
+                        loc.SetMemoryIndex(memIndexCount += size);
+                        localVariables.Add(i.Argument[0].ToString(), loc);
+                        break;
+                    case OpCodes.LoadInt:
+                        Emitter.EmitLoad64BitValue(Convert.ToInt64(i.Argument[0]));
+                        break;
                     case OpCodes.StoreMem:
-                        name = i.Argument[0].ToString();
-                        if (!localVariables.ContainsKey(name))
-                        {
-                            var size = Convert.ToUInt16(i.Argument[1]);
-                            var loc = new Variable(name, size);
-                            loc.SetMemoryIndex(memIndexCount += size);
-                            localVariables.Add(name, loc);
-                            break;
-                        }
-                        Emitter.EmitStoreMem64Bit(memIndexCount += localVariables[name].Size);
+                        Emitter.EmitStoreMem64Bit(localVariables[i.Argument[0].ToString()].MemoryIndex);
                         break;
                     case OpCodes.LoadArrayElem:
-                        Emitter.EmitLoadElemArray((int)i.Argument[0], (int)i.Argument[1]);
+                        Emitter.EmitLoadElemArray((int)i.Argument[0]);
                         break;
                     case OpCodes.UnsafeAsm:
                         Emitter.EmitAssembly(i.Argument[0].ToString());
+                        break;
+                    case OpCodes.LoadField:
+                        Emitter.EmitLoadField(GetMemoryIndexFromFieldName(((StructType)Bytecode.GlobalMembers[i.Argument[0].ToString()]).Fields, i.Argument[1].ToString()));
+                        break;
+                    case OpCodes.StoreField:
+                        Emitter.EmitStoreField(GetMemoryIndexFromFieldName(((StructType)Bytecode.GlobalMembers[i.Argument[0].ToString()]).Fields, i.Argument[1].ToString()));
+                        break;
+                    case OpCodes.LoadInstance:
+                        var structType = (StructType)Bytecode.GlobalMembers[i.Argument[0].ToString()];
+                        Emitter.EmitLoad32BitValue(structType.Size);
+                        Emitter.EmitCall("mem::alloc(u32)unknow*");
                         break;
                     case OpCodes.UnsafeEmitGlobal:
                         var g = (Tuple<string, string, string>)i.Argument[0];
@@ -70,7 +92,7 @@ namespace Machina
                         Emitter.EmitLoadString(i.Argument[0].ToString());
                         break;
                     case OpCodes.Ret:
-                        Emitter.EmitRestoreStackPointer(function.AllocationSize);
+                        Emitter.EmitRestoreStackPointer(function.AllocationSize + function.ParametersAllocationSize);
                         Emitter.EmitReturn();
                         break;
                 }
@@ -78,12 +100,26 @@ namespace Machina
         void Generate()
         {
             foreach (var member in Bytecode.GlobalMembers.Values)
+            {
                 if (member is Function)
                     GenerateFunction((Function)member, ((Function)member).Name == EntryPointName);
+                else if (member is StructType)
+                    GenerateStruct((StructType)member);
+            }
         }
-        void GenerateStruct()
+        void GenerateField(Variable variable)
         {
-
+            Emitter.EmitGlobal(variable.Name, variable.Type, variable.Value);
+        }
+        void GenerateStruct(StructType structType)
+        {
+            if (structType.Name == "void")
+                throw new Exception("Cannot install a struct with a name of a built in type");
+            for (int i = 0; i < structType.Methods.Count; i++)
+            {
+                structType.Methods[i].SetName(structType.Name + '.' + structType.Methods[i].Name);
+                GenerateFunction(structType.Methods[i]);
+            }
         }
         public Evaluator(string moduleName, Bytecode bytecode)
         {
