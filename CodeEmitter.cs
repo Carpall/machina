@@ -76,9 +76,13 @@ namespace Machina
             var top = FetchPreviousRegister64Bit();
             EmitInstruction("mov", '['+FetchPreviousRegister64Bit()+'+'+sizeCounts+']', top);
         }
-        public void EmitCallPointer()
+        public void EmitDecrementRefCount()
         {
-            EmitInstruction("call", FetchPreviousRegister64Bit());
+            EmitInstruction("sub", '['+FetchPreviousRegister64Bit()+'+'+9+']', "1");
+        }
+        public void EmitIncrementRefCount()
+        {
+            EmitInstruction("add", '[' + FetchPreviousRegister64Bit() + '+' + 9 + ']', "1");
         }
         public void EmitLoadField(int sizeCounts)
         {
@@ -136,7 +140,7 @@ namespace Machina
         }
         public void EmitLoadMemPointer(int memoryIndex)
         {
-            EmitInstruction("lea", FetchNextRegister64Bit(), "[rbp-"+memoryIndex.ToString()+']');
+            EmitInstruction("lea", FetchNextRegister64Bit(), "[rbp-" + memoryIndex.ToString() + ']');
         }
         string FetchPreviousRegister32Bit()
         {
@@ -173,6 +177,18 @@ namespace Machina
         public void EmitLoad64BitValue(long value)
         {
             EmitInstruction("mov", FetchNextRegister64Bit(), value.ToString());
+        }
+        public void EmitLoadGlobal(string name)
+        {
+            EmitInstruction("mov", FetchNextRegister64Bit(), "[rip+\""+name+"\"]");
+        }
+        public void EmitLoadGlobalPointer(string  name)
+        {
+            EmitInstruction("lea", FetchNextRegister64Bit(), "[rip+\"" + name + "\"]");
+        }
+        public void EmitStoreGlobal(string name)
+        {
+            EmitInstruction("mov", "[rip+\"" + name + "\"]", FetchPreviousRegister64Bit());
         }
         public void EmitLoadVoid()
         {

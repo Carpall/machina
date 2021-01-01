@@ -67,6 +67,12 @@ namespace Machina
                         Emitter.EmitMul32Bit();
                         Emitter.EmitCall("mem::alloc(u32)unknow*");
                         break;
+                    case OpCodes.DecrementRefCount:
+                        Emitter.EmitDecrementRefCount();
+                        break;
+                    case OpCodes.IncrementRefCount:
+                        Emitter.EmitIncrementRefCount();
+                        break;
                     case OpCodes.CallInstance:
                         var method = GetMethodFromName(((StructType)Bytecode.GlobalMembers[i.Argument[0].ToString()]).Methods, i.Argument[1].ToString());
                         Emitter.EmitCall(i.Argument[0].ToString()+'.'+method.Name.ToString(), method.ReturnType == "void");
@@ -119,6 +125,15 @@ namespace Machina
                         var g = (Tuple<string, string, string>)i.Argument[0];
                         Emitter.EmitGlobal(g.Item1, g.Item2, g.Item3);
                         break;
+                    case OpCodes.LoadGlobal:
+                        if (((Variable)Bytecode.GlobalMembers[i.Argument[0].ToString()]).Type == "asciz")
+                            Emitter.EmitLoadGlobalPointer(i.Argument[0].ToString());
+                        else
+                            Emitter.EmitLoadGlobal(i.Argument[0].ToString());
+                        break;
+                    case OpCodes.StoreGlobal:
+                        Emitter.EmitStoreGlobal(i.Argument[0].ToString());
+                        break;
                     case OpCodes.LoadString:
                         Emitter.EmitLoadString(i.Argument[0].ToString());
                         break;
@@ -132,15 +147,17 @@ namespace Machina
         {
             foreach (var member in Bytecode.GlobalMembers.Values)
             {
-                if (member is Function)
-                    GenerateFunction((Function)member, ((Function)member).Name == EntryPointName);
-                else if (member is StructType)
-                    GenerateStruct((StructType)member);
+                if (member is Variable variable)
+                    GenerateGlobal(variable);
+                if (member is Function function)
+                    GenerateFunction(function, function.Name == EntryPointName);
+                else if (member is StructType structType)
+                    GenerateStruct(structType);
             }
         }
-        void GenerateField(Variable variable)
+        void GenerateGlobal(Variable variable)
         {
-            Emitter.EmitGlobal(variable.Name, variable.Type, variable.Value);
+            Emitter.EmitGlobal(variable.Name, variable.Type, variable.Type == "asciz" ? '"' + variable.Value + '"' : variable.Value);
         }
         void GenerateStruct(StructType structType)
         {

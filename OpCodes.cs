@@ -37,5 +37,9 @@ namespace Machina
         LoadMemPointer,
         Push,
         Pop,
+        DecrementRefCount,
+        IncrementRefCount,
+        LoadGlobal,
+        StoreGlobal,
     }
 }
