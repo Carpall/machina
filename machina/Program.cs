@@ -1,13 +1,24 @@
 ﻿using System;
 
-var emitter = new Machina.Emitter("test");
-emitter.EmitLabel("main");
-emitter.SavePreviousBP64();
-emitter.Load("9");
+var emitter = new Machina.Emitter();
+
+emitter.EmitFunctionLabel32(name: "main", paramCount: 0);
+
+emitter.SavePreviousFrame64();
+emitter.DeclareStackAllocation64(size: 0);
+
+emitter.Load("1");
 emitter.Load("2");
+emitter.Load("3"); // stack: [1, 2, 3]
+emitter.EmitCall32(name: "add", argCount: 2);
 emitter.EmitAddInt32();
-emitter.Load("3");
-emitter.EmitAddInt32();
-emitter.RestorePreviousBP64();
+
+emitter.RestorePreviousFrame64();
 emitter.EmitRetInt32();
-Console.WriteLine(emitter);
+
+emitter.EmitFunctionLabel32("add", 2);
+
+emitter.EmitAddInt32();
+emitter.EmitRetInt32();
+
+Console.WriteLine(emitter.GetAssembly());
