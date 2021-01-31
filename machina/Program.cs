@@ -1,15 +1,15 @@
 ﻿using System;
 
-var emitter = new Machina.Emitter();
+var emitter = new Machina.Emitter.Emitter("test");
 
 emitter.EmitFunctionLabel32(name: "main", paramCount: 0);
 
 emitter.SavePreviousFrame64();
 emitter.DeclareStackAllocation64(size: 0);
 
-emitter.Load("1");
-emitter.Load("2");
-emitter.Load("3"); // stack: [1, 2, 3]
+emitter.Load(1);
+emitter.Load(2);
+emitter.Load(3);
 emitter.EmitCall32(name: "add", argCount: 2);
 emitter.EmitAddInt32();
 
