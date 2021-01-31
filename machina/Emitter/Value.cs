@@ -17,13 +17,9 @@ namespace Machina.Emitter
         public static Value Register(Register32Kind8086 register) => new Value() { Body = register, IsRegister = true };
         public static Value Register(Register64Kind8086 register) => new Value() { Body = register, IsRegister = true };
         public static Value Instruction(InstructionKind8086 instruction) => new Value() { Body = instruction, IsInstruction = true };
-        public bool MatchInstruction(InstructionKind8086 instruction)
+        public bool MatchConstant(object constant)
         {
-            return IsInstruction && (InstructionKind8086)Body == instruction;
-        }
-        public bool MatchConstant(object instruction)
-        {
-            return IsConstant && Body == instruction;
+            return IsConstant && Body.Equals(constant);
         }
         public override string ToString()
         {
