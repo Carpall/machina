@@ -1,3 +1,5 @@
-/.vs/
-/bin/
-/obj/
+machina/.vs/
+machina/bin/
+machina/obj/
+machina/machina.sln
+*.exe
