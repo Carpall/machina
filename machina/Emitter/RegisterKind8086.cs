@@ -4,24 +4,24 @@ using System.Text;
 
 namespace Machina.Emitter
 {
-    enum Register16Kind8086
+    enum Register8Kind8086
     {
-        ax,
-        bx,
-        cx,
-        dx,
-        si,
-        di,
-        bp,
-        sp,
-        r8w,
-        r9w,
-        r10w,
-        r11w,
-        r12w,
-        r13w,
-        r14w,
-        r15w
+        al,
+        bl,
+        cl,
+        dl,
+        sil,
+        dil,
+        r8b,
+        r9b,
+        r10b,
+        r11b,
+        r12b,
+        r13b,
+        r14b,
+        r15b,
+        bpl,
+        spl,
     }
     enum Register32Kind8086
     {
@@ -31,8 +31,6 @@ namespace Machina.Emitter
         edx,
         esi,
         edi,
-        ebp,
-        esp,
         r8d,
         r9d,
         r10d,
@@ -40,7 +38,9 @@ namespace Machina.Emitter
         r12d,
         r13d,
         r14d,
-        r15d
+        r15d,
+        ebp,
+        esp,
     }
     enum Register64Kind8086
     {
@@ -50,8 +50,6 @@ namespace Machina.Emitter
         rdx,
         rsi,
         rdi,
-        rbp,
-        rsp,
         r8,
         r9,
         r10,
@@ -59,6 +57,8 @@ namespace Machina.Emitter
         r12,
         r13,
         r14,
-        r15
+        r15,
+        rbp,
+        rsp,
     }
 }

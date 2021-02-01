@@ -17,6 +17,11 @@ namespace Machina.Emitter
         xor,
         leave,
         ret,
-        call
+        call,
+        cmp,
+        sete,
+        setne,
+        setg,
+        setl,
     }
 }

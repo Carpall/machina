@@ -6,7 +6,7 @@ namespace Machina.Emitter
 {
     class RegistersBag8086
     {
-        public const Register16Kind8086 ReturnRegister16 = Register16Kind8086.ax;
+        public const Register8Kind8086 ReturnRegister16 = Register8Kind8086.al;
         public const Register32Kind8086 ReturnRegister32 = Register32Kind8086.eax;
         public const Register64Kind8086 ReturnRegister64 = Register64Kind8086.rax;
         int _registerCounter = 0;
@@ -18,13 +18,13 @@ namespace Machina.Emitter
         {
             _registerCounter = to;
         }
-        public Register16Kind8086 FetchNext16()
+        public Register8Kind8086 FetchNext8()
         {
-            return (Register16Kind8086)_registerCounter++;
+            return (Register8Kind8086)_registerCounter++;
         }
-        public Register32Kind8086 FetchPrevious16()
+        public Register8Kind8086 FetchPrevious8()
         {
-            return (Register32Kind8086)(--_registerCounter);
+            return (Register8Kind8086)(--_registerCounter);
         }
         public Register32Kind8086 FetchNext32()
         {
@@ -41,6 +41,11 @@ namespace Machina.Emitter
         public Register64Kind8086 FetchPrevious64()
         {
             return (Register64Kind8086)(--_registerCounter);
+        }
+
+        public override string ToString()
+        {
+            return _registerCounter.ToString();
         }
     }
 }

@@ -8,10 +8,10 @@ namespace Machina.Emitter
 {
     class Emitter
     {
-        readonly InstructionBuilder8086 Assembly = new();
-        readonly List<Value> Stack = new();
-        readonly RegistersBag8086 Registers = new();
-        readonly string _fileName = "";
+        readonly InstructionBuilder8086 _assembly = new();
+        readonly List<Value> _stack = new();
+        readonly RegistersBag8086 _registers = new();
+        readonly string _fileName;
 
         const int PassArgumentsOffset = 2;
         const string EntryPointName = "main";
@@ -25,14 +25,14 @@ namespace Machina.Emitter
         {
             if (generateTextSection)
             {
-                Assembly.EntryPoint = EntryPointName;
-                Assembly.FileName = _fileName;
+                _assembly.EntryPoint = EntryPointName;
+                _assembly.FileName = _fileName;
             }
-            return Assembly.Assemble();
+            return _assembly.Assemble();
         }
         public void EmitInstruction(InstructionKind8086 opcode, Value dest, Value source, string label = "")
         {
-            Assembly.EmitInstruction(new Instruction8086() { Label = label, Kind = opcode, Arg0 = dest, Arg1 = source });
+            _assembly.EmitInstruction(new Instruction8086() { Label = label, Kind = opcode, Arg0 = dest, Arg1 = source });
         }
         public void EmitInstruction(InstructionKind8086 opcode, Value dest, string label = "")
         {
@@ -51,18 +51,18 @@ namespace Machina.Emitter
             if (argCount > 0)
             {
                 for (; argCount > 0; argCount--)
-                    Load(new Value() { Body = Registers.FetchNext32(),  });
+                    Load(new Value() { Body = _registers.FetchNext32(),  });
             }
         }
         public void EmitFunctionLabel32(string name, int paramCount)
         {
-            Registers.ResetCounter(PassArgumentsOffset);
+            _registers.ResetCounter(paramCount);
             PushParams(paramCount);
             EmitLabel(name);
         }
         string AlignSize(int size)
         {
-            for (; true; size++)
+            for (; ; size++)
                 if ((size % 16) == 0)
                     return size.ToString();
         }
@@ -83,33 +83,32 @@ namespace Machina.Emitter
         }
         public void Load(Value value)
         {
-            Stack.Add(value);
+            _stack.Add(value);
         }
         public void Load(int value)
         {
-            Stack.Add(Value.Constant(value));
+            _stack.Add(Value.Constant(value));
         }
         Value Pop()
         {
-            var p = Stack[^1];
-            Stack.RemoveAt(Stack.Count - 1);
+            var p = _stack[^1];
+            _stack.RemoveAt(_stack.Count - 1);
             if (p.IsInstruction) {
-                var fetch = Value.Register(Registers.FetchNext64());
+                var fetch = Value.Register(_registers.FetchNext64());
                 EmitInstruction((InstructionKind8086)p.Body, fetch);
-                Registers.AdvanceCounter(-1);
+                _registers.AdvanceCounter(-1);
                 return fetch;
             }
             return p;
         }
         void EmitMove(Value dest, Value source)
         {
-            if (!dest.Equals(source))
-            {
-                if (source.MatchConstant(0))
-                    EmitInstruction(InstructionKind8086.xor, dest, dest);
-                else
-                    EmitInstruction(InstructionKind8086.mov, dest, source);
-            }
+            if (dest.MatchRegister(source)) return;
+            
+            if (source.MatchConstant(Value.Constant(0)))
+                EmitInstruction(InstructionKind8086.xor, dest, dest);
+            else
+                EmitInstruction(InstructionKind8086.mov, dest, source);
         }
         public void SavePreviousBP32()
         {
@@ -133,32 +132,32 @@ namespace Machina.Emitter
         public void EmitAddInt32()
         {
             var source = Pop();
-            EmitMove(Value.Register(Registers.FetchNext32()), Pop());
-            var dest = Value.Register(Registers.FetchPrevious32());
+            EmitMove(Value.Register(_registers.FetchNext32()), Pop());
+            var dest = Value.Register(_registers.FetchPrevious32());
             EmitInstruction(InstructionKind8086.add, dest, source);
             Load(dest);
         }
         public void EmitSubInt32()
         {
             var source = Pop();
-            EmitMove(Value.Register(Registers.FetchNext32()), Pop());
-            var dest = Value.Register(Registers.FetchPrevious32());
+            EmitMove(Value.Register(_registers.FetchNext32()), Pop());
+            var dest = Value.Register(_registers.FetchPrevious32());
             EmitInstruction(InstructionKind8086.sub, dest, source);
             Load(dest);
         }
         public void EmitMulInt32()
         {
             var source = Pop();
-            EmitMove(Value.Register(Registers.FetchNext32()), Pop());
-            var dest = Value.Register(Registers.FetchPrevious32());
+            EmitMove(Value.Register(_registers.FetchNext32()), Pop());
+            var dest = Value.Register(_registers.FetchPrevious32());
             EmitInstruction(InstructionKind8086.imul, dest, source);
             Load(dest);
         }
         public void EmitDivInt32()
         {
             var source = Pop();
-            EmitMove(Value.Register(Registers.FetchNext32()), Pop());
-            var dest = Value.Register(Registers.FetchPrevious32());
+            EmitMove(Value.Register(_registers.FetchNext32()), Pop());
+            var dest = Value.Register(_registers.FetchPrevious32());
             EmitInstruction(InstructionKind8086.idiv, dest, source);
             Load(dest);
         }
@@ -178,13 +177,13 @@ namespace Machina.Emitter
         }
         void SaveStackItems(int skipCount)
         {
-            for (int i = Stack.Count - skipCount; i > 0; i--)
+            for (int i = _stack.Count - skipCount; i > 0; i--)
             {
-                var p = Stack[i - 1];
+                var p = _stack[i - 1];
                 if (!p.IsConstant)
                 {
                     EmitInstruction(InstructionKind8086.push, p);
-                    Stack[i - 1] = Value.Instruction(InstructionKind8086.pop);
+                    _stack[i - 1] = Value.Instruction(InstructionKind8086.pop);
                 }
             }
         }
@@ -192,18 +191,18 @@ namespace Machina.Emitter
         {
             if (argCount > 0)
             {
-                Registers.ResetCounter(PassArgumentsOffset + argCount);
+                _registers.ResetCounter(PassArgumentsOffset + argCount);
                 for (; argCount > 0; argCount--)
-                    EmitMove(Value.Register(Registers.FetchPrevious32()), Pop());
+                    EmitMove(Value.Register(_registers.FetchPrevious32()), Pop());
             }
         }
         void PassArguments64(int argCount)
         {
             if (argCount > 0)
             {
-                Registers.ResetCounter(PassArgumentsOffset + argCount);
+                _registers.ResetCounter(PassArgumentsOffset + argCount);
                 for (; argCount > 0; argCount--)
-                    EmitMove(Value.Register(Registers.FetchPrevious64()), Pop());
+                    EmitMove(Value.Register(_registers.FetchPrevious64()), Pop());
             }
         }
         public void EmitCall32(string name, int argCount)
@@ -219,6 +218,31 @@ namespace Machina.Emitter
             PassArguments64(argCount);
             EmitInstruction(InstructionKind8086.call, Value.Constant(name));
             Load(Value.Register(RegistersBag8086.ReturnRegister64));
+        }
+        void Compare(InstructionKind8086 setInstruction)
+        {
+            // add optimizations like: omit when are constants
+            var second = Pop();
+            EmitInstruction(InstructionKind8086.cmp, Pop(), second);
+            var fetch = _registers.FetchNext8();
+            EmitInstruction(setInstruction, Value.Register(fetch));
+            Load(Value.Register(fetch));
+        }
+        public void EmitCompareEQ()
+        {
+            Compare(InstructionKind8086.sete);
+        }
+        public void EmitCompareNEQ()
+        {
+            Compare(InstructionKind8086.setne);
+        }
+        public void EmitCompareGT()
+        {
+            Compare(InstructionKind8086.setg);
+        }
+        public void EmitCompareLS()
+        {
+            Compare(InstructionKind8086.setl);
         }
     }
 }
