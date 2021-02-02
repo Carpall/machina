@@ -18,6 +18,11 @@ namespace Machina.Emitter
         {
             _registerCounter = to;
         }
+
+        public Register64Kind8086 Current64()
+        {
+            return (Register64Kind8086)_registerCounter;
+        }
         public Register8Kind8086 FetchNext8()
         {
             return (Register8Kind8086)_registerCounter++;

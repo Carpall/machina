@@ -1,12 +1,13 @@
+using System;
+
 namespace Machina.Emitter
 {
     struct RegisterConversion
     {
         public AssemblyType Type { get; set; }
-        public Value Body { get; set; }
-        public override string ToString()
+        public string ToString(Enum registerKind)
         {
-            return $"{Type.ToString().ToLower()} ptr [{Body}]";
+            return $"{Type.ToString().ToLower()} ptr [{registerKind}]";
         }
     }
 }

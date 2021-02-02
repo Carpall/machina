@@ -4,25 +4,34 @@ using System.Text;
 
 namespace Machina.Emitter
 {
+    enum ValueKind
+    {
+        Empty,
+        Constant,
+        Register,
+        Instruction,
+        MemoryReference
+    }
     struct Value
     {
         public object Body { get; set; }
-        public bool IsEmpty { get; set; }
-        public bool IsConstant { get; set; }
-        public bool IsRegister { get; set; }
-        public bool IsConversion { get; set; }
-        public bool IsInstruction { get; set; }
-        public static Value Empty() => new Value() { Body = "", IsEmpty = true };
-        public static Value Constant(object constant)  => new Value() { Body = constant, IsConstant = true };
-        public static Value Register(Register8Kind8086 register) => new Value() { Body = register, IsRegister = true };
-        public static Value Register(Register32Kind8086 register) => new Value() { Body = register, IsRegister = true };
-        public static Value Register(Register64Kind8086 register) => new Value() { Body = register, IsRegister = true };
-        public static Value Instruction(InstructionKind8086 instruction) => new Value() { Body = instruction, IsInstruction = true };
-        public static Value RegisterConversion(RegisterConversion conversion) => new Value() { Body = conversion, IsConversion = true };
+        public ValueKind Kind { get; set; }
+        public bool IsEmpty => Kind == ValueKind.Empty;
+        public bool IsConstant => Kind == ValueKind.Constant;
+        public bool IsRegister => Kind == ValueKind.Register;
+        public bool IsInstruction => Kind == ValueKind.Instruction;
+        public bool IsMemoryReference => Kind == ValueKind.MemoryReference;
 
+        public static Value Empty() => new Value() { Body = "", Kind = ValueKind.Empty };
+        public static Value Constant(object constant)  => new Value() { Body = constant, Kind = ValueKind.Constant };
+        public static Value Register(RegisterValue register) => new Value() { Body = register, Kind = ValueKind.Register };
+        public static Value Register (Enum register) => Register(new RegisterValue() { RegisterKind = register });
+        public static Value Instruction(InstructionKind8086 instruction) => new Value() { Body = instruction, Kind = ValueKind.Instruction };
+        public static Value MemoryReference(MemoryReference reference) => new Value() { Body = reference, Kind = ValueKind.MemoryReference };
         public AssemblyType GetAssemblyTypeFromRegSize()
         {
-            return Body switch
+            // transfer to register struct 
+            return ((RegisterValue)Body).RegisterKind switch
             {
                 Register8Kind8086 => AssemblyType.BYTE,
                 Register32Kind8086 => AssemblyType.DWORD,
@@ -32,19 +41,27 @@ namespace Machina.Emitter
         }
         public bool LowerBitSizedThan(Value register)
         {
-            return IsRegister && (Body is Register8Kind8086 &&
-                                  (register.Body is Register32Kind8086 || register.Body is Register64Kind8086)) ||
-                   (Body is Register32Kind8086 && register.Body is Register64Kind8086);
+            if (!IsRegister) return false;
+
+            var reg = (RegisterValue)Body;
+            var reg2 = (RegisterValue)register.Body;
+            return (reg.MatchRegisterKind<Register8Kind8086>() &&
+                    (reg2.MatchRegisterKind<Register32Kind8086>() || reg2.MatchRegisterKind<Register64Kind8086>())) ||
+                   (reg.MatchRegisterKind<Register32Kind8086>() && reg2.MatchRegisterKind<Register64Kind8086>());
         }
         public bool BiggerBitSizedThan(Value register)
         {
-            return IsRegister && (Body is Register64Kind8086 &&
-                                  (register.Body is Register8Kind8086 || register.Body is Register32Kind8086)) ||
-                   (Body is Register32Kind8086 && register.Body is Register8Kind8086);
+            if (!IsRegister) return false;
+
+            var reg = (RegisterValue)Body;
+            var reg2 = (RegisterValue)register.Body;
+            return (reg.MatchRegisterKind<Register64Kind8086>() &&
+                    (reg2.MatchRegisterKind<Register8Kind8086>() || reg2.MatchRegisterKind<Register32Kind8086>())) ||
+                   (reg.MatchRegisterKind<Register32Kind8086>() && reg2.MatchRegisterKind<Register8Kind8086>());
         }
         public bool MatchRegister(Value register)
         {
-            return IsRegister && register.IsRegister && (Register32Kind8086)Body == (Register32Kind8086)register.Body;
+            return IsRegister && register.IsRegister && ((RegisterValue)Body).RegisterKind.Equals(((RegisterValue)register.Body).RegisterKind);
         }
         public bool MatchConstant(Value constant)
         {

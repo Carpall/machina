@@ -21,7 +21,7 @@ namespace Machina.Emitter
             _fileName = filename;
         }
 
-        public string GetAssembly(bool generateTextSection = true)
+        public string DumpAssembly(bool generateTextSection = true)
         {
             if (generateTextSection)
             {
@@ -114,14 +114,7 @@ namespace Machina.Emitter
             if (source.MatchConstant(Value.Constant(0)))
                 EmitInstruction(InstructionKind8086.xor, dest, dest);
             else
-            {
-                var instruction = new Instruction8086() { Kind = InstructionKind8086.mov, Arg0 = dest, Arg1 = source };
-                if (source.LowerBitSizedThan(dest))
-                    instruction.Kind = InstructionKind8086.movzx;
-                else if (source.BiggerBitSizedThan(dest))
-                    instruction.Arg1 = Value.RegisterConversion(new RegisterConversion() { Type = dest.GetAssemblyTypeFromRegSize(), Body = source });
-                EmitInstruction(instruction);
-            }
+                MakeAutomaticConversion(source, dest);
         }
         public void SavePreviousBP32()
         {
@@ -142,6 +135,23 @@ namespace Machina.Emitter
         {
             EmitInstruction(InstructionKind8086.leave);
         }
+        public void EmitStoreInStack64(int index)
+        {
+            var value = Pop();
+            var addr = Value.MemoryReference(new MemoryReference() { Index = index, MemoryPointer = Register64Kind8086.rbp });
+            if (value.IsMemoryReference)
+                EmitMove(value = Value.Register(_registers.Current64()), value);
+            EmitMove(addr, value);
+        }
+        void MakeAutomaticConversion(Value source, Value dest)
+        {
+            var instruction = new Instruction8086() { Kind = InstructionKind8086.mov, Arg0 = dest, Arg1 = source };
+            if (source.LowerBitSizedThan(dest))
+                instruction.Kind = InstructionKind8086.movzx;
+            else if (source.BiggerBitSizedThan(dest))
+                instruction.Arg1 = Value.Register(RegisterValue.RegisterConversion(new RegisterConversion() { Type = dest.GetAssemblyTypeFromRegSize() }, ((RegisterValue)source.Body).RegisterKind));
+            EmitInstruction(instruction);
+        }
         void EmitOpInt32(InstructionKind8086 instruction)
         {
             var second = Pop();
@@ -150,7 +160,11 @@ namespace Machina.Emitter
             if (!first.IsRegister)
                 EmitMove(dest, first);
             else
+            {
                 dest = first;
+                if (second.IsRegister)
+                    MakeAutomaticConversion(second, first);
+            }
             EmitInstruction(instruction, dest, second);
             Load(dest);
         }
