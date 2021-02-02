@@ -36,7 +36,7 @@ namespace Machina.Emitter
                 var arg0 = _builder[i].Arg0;
                 var arg1 = _builder[i].Arg1;
                 assembly.AppendLine(
-                    $"{Indent}{(label != "" ? $"{label}: " : "")}{opcode} {arg0}{(!arg1.IsEmpty ? $", {arg1}" : "")}"
+                    $"{Indent}{(!string.IsNullOrEmpty(label) ? $"{label}: " : "")}{opcode} {arg0}{(!arg1.IsEmpty ? $", {arg1}" : "")}"
                 );
             }
             return assembly.ToString();

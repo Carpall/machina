@@ -23,5 +23,6 @@ namespace Machina.Emitter
         setne,
         setg,
         setl,
+        movzx
     }
 }

@@ -30,9 +30,14 @@ namespace Machina.Emitter
             }
             return _assembly.Assemble();
         }
+
+        public void EmitInstruction(Instruction8086 instruction)
+        {
+            _assembly.EmitInstruction(instruction);
+        }
         public void EmitInstruction(InstructionKind8086 opcode, Value dest, Value source, string label = "")
         {
-            _assembly.EmitInstruction(new Instruction8086() { Label = label, Kind = opcode, Arg0 = dest, Arg1 = source });
+            EmitInstruction(new Instruction8086() { Label = label, Kind = opcode, Arg0 = dest, Arg1 = source });
         }
         public void EmitInstruction(InstructionKind8086 opcode, Value dest, string label = "")
         {
@@ -101,14 +106,22 @@ namespace Machina.Emitter
             }
             return p;
         }
+
         void EmitMove(Value dest, Value source)
         {
             if (dest.MatchRegister(source)) return;
-            
+
             if (source.MatchConstant(Value.Constant(0)))
                 EmitInstruction(InstructionKind8086.xor, dest, dest);
             else
-                EmitInstruction(InstructionKind8086.mov, dest, source);
+            {
+                var instruction = new Instruction8086() { Kind = InstructionKind8086.mov, Arg0 = dest, Arg1 = source };
+                if (source.LowerBitSizedThan(dest))
+                    instruction.Kind = InstructionKind8086.movzx;
+                else if (source.BiggerBitSizedThan(dest))
+                    instruction.Arg1 = Value.RegisterConversion(new RegisterConversion() { Type = dest.GetAssemblyTypeFromRegSize(), Body = source });
+                EmitInstruction(instruction);
+            }
         }
         public void SavePreviousBP32()
         {
@@ -129,37 +142,33 @@ namespace Machina.Emitter
         {
             EmitInstruction(InstructionKind8086.leave);
         }
+        void EmitOpInt32(InstructionKind8086 instruction)
+        {
+            var second = Pop();
+            var first = Pop();
+            var dest = Value.Register(_registers.FetchNext32());
+            if (!first.IsRegister)
+                EmitMove(dest, first);
+            else
+                dest = first;
+            EmitInstruction(instruction, dest, second);
+            Load(dest);
+        }
         public void EmitAddInt32()
         {
-            var source = Pop();
-            EmitMove(Value.Register(_registers.FetchNext32()), Pop());
-            var dest = Value.Register(_registers.FetchPrevious32());
-            EmitInstruction(InstructionKind8086.add, dest, source);
-            Load(dest);
+            EmitOpInt32(InstructionKind8086.add);
         }
         public void EmitSubInt32()
         {
-            var source = Pop();
-            EmitMove(Value.Register(_registers.FetchNext32()), Pop());
-            var dest = Value.Register(_registers.FetchPrevious32());
-            EmitInstruction(InstructionKind8086.sub, dest, source);
-            Load(dest);
+            EmitOpInt32(InstructionKind8086.sub);
         }
         public void EmitMulInt32()
         {
-            var source = Pop();
-            EmitMove(Value.Register(_registers.FetchNext32()), Pop());
-            var dest = Value.Register(_registers.FetchPrevious32());
-            EmitInstruction(InstructionKind8086.imul, dest, source);
-            Load(dest);
+            EmitOpInt32(InstructionKind8086.imul);
         }
         public void EmitDivInt32()
         {
-            var source = Pop();
-            EmitMove(Value.Register(_registers.FetchNext32()), Pop());
-            var dest = Value.Register(_registers.FetchPrevious32());
-            EmitInstruction(InstructionKind8086.idiv, dest, source);
-            Load(dest);
+            EmitOpInt32(InstructionKind8086.idiv);
         }
         public void EmitRetInt32()
         {
@@ -223,7 +232,10 @@ namespace Machina.Emitter
         {
             // add optimizations like: omit when are constants
             var second = Pop();
-            EmitInstruction(InstructionKind8086.cmp, Pop(), second);
+            var first = Pop();
+            if (second.IsConstant && first.IsConstant)
+                throw new ArgumentException("Impossible to compare two constants");
+            EmitInstruction(InstructionKind8086.cmp, first, second);
             var fetch = _registers.FetchNext8();
             EmitInstruction(setInstruction, Value.Register(fetch));
             Load(Value.Register(fetch));
