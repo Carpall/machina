@@ -8,6 +8,10 @@ namespace Machina.Emitter
         public bool HasConversion { get; set; }
         public RegisterConversion Conversion { get; set; }
 
+        public bool SameOf(Enum register)
+        {
+            return Convert.ToInt32(register) == Convert.ToInt32(RegisterKind);
+        } 
         public bool MatchRegisterKind<T>() where T : Enum
         {
             return RegisterKind is T;

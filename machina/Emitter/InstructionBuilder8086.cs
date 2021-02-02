@@ -16,7 +16,7 @@ namespace Machina.Emitter
         {
             _builder.Add(instruction);
         }
-        public string Assemble(bool generateText = true)
+        public string DumpAssembly(bool generateText = true)
         {
             StringBuilder assembly = new();
             if (generateText)

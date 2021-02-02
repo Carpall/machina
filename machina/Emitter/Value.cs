@@ -59,9 +59,9 @@ namespace Machina.Emitter
                     (reg2.MatchRegisterKind<Register8Kind8086>() || reg2.MatchRegisterKind<Register32Kind8086>())) ||
                    (reg.MatchRegisterKind<Register32Kind8086>() && reg2.MatchRegisterKind<Register8Kind8086>());
         }
-        public bool MatchRegister(Value register)
+        public bool SameRegisterOf(Value register)
         {
-            return IsRegister && register.IsRegister && ((RegisterValue)Body).RegisterKind.Equals(((RegisterValue)register.Body).RegisterKind);
+            return IsRegister && register.IsRegister && ((RegisterValue)Body).SameOf(((RegisterValue)register.Body).RegisterKind);
         }
         public bool MatchConstant(Value constant)
         {

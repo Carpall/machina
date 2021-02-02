@@ -11,24 +11,20 @@ namespace Machina.Emitter
         readonly InstructionBuilder8086 _assembly = new();
         readonly List<Value> _stack = new();
         readonly RegistersBag8086 _registers = new();
-        readonly string _fileName;
 
         const int PassArgumentsOffset = 2;
         const string EntryPointName = "main";
+        private const Register64Kind8086 StackAllocationPointer64 = Register64Kind8086.rbp;
 
-        public Emitter(string filename)
+        public Emitter(string filename = null)
         {
-            _fileName = filename;
+            _assembly.FileName = filename;
+            _assembly.EntryPoint = EntryPointName;
         }
 
         public string DumpAssembly(bool generateTextSection = true)
         {
-            if (generateTextSection)
-            {
-                _assembly.EntryPoint = EntryPointName;
-                _assembly.FileName = _fileName;
-            }
-            return _assembly.Assemble();
+            return _assembly.DumpAssembly(generateTextSection);
         }
 
         public void EmitInstruction(Instruction8086 instruction)
@@ -109,8 +105,10 @@ namespace Machina.Emitter
 
         void EmitMove(Value dest, Value source)
         {
-            if (dest.MatchRegister(source)) return;
+            if (dest.SameRegisterOf(source)) return;
 
+            if (dest.IsMemoryReference)
+                LookAtMemoryReference(ref source);
             if (source.MatchConstant(Value.Constant(0)))
                 EmitInstruction(InstructionKind8086.xor, dest, dest);
             else
@@ -135,13 +133,24 @@ namespace Machina.Emitter
         {
             EmitInstruction(InstructionKind8086.leave);
         }
-        public void EmitStoreInStack64(int index)
+        public void LookAtMemoryReference(ref Value value)
         {
+            if (!value.IsMemoryReference) return;
+            
+            var old = value;
+            EmitMove(value = Value.Register(_registers.Current64()), old);
+        }
+        public void EmitStoreInStack64(int index, AssemblyType type)
+        {
+            var addr = Value.MemoryReference(new MemoryReference() { Index = index, MemoryPointer = StackAllocationPointer64, AssemblyType = type });
             var value = Pop();
-            var addr = Value.MemoryReference(new MemoryReference() { Index = index, MemoryPointer = Register64Kind8086.rbp });
-            if (value.IsMemoryReference)
-                EmitMove(value = Value.Register(_registers.Current64()), value);
+            LookAtMemoryReference(ref value);
             EmitMove(addr, value);
+        }
+        public void EmitLoadFromStack64(int index, AssemblyType type)
+        {
+            Load(Value.MemoryReference(new MemoryReference()
+                { MemoryPointer = StackAllocationPointer64, Index = index, AssemblyType = type }));
         }
         void MakeAutomaticConversion(Value source, Value dest)
         {
@@ -165,6 +174,7 @@ namespace Machina.Emitter
                 if (second.IsRegister)
                     MakeAutomaticConversion(second, first);
             }
+
             EmitInstruction(instruction, dest, second);
             Load(dest);
         }
@@ -196,6 +206,7 @@ namespace Machina.Emitter
         }
         public void EmitRetVoid()
         {
+            RestorePreviousFrame64();
             EmitInstruction(InstructionKind8086.ret);
         }
         void SaveStackItems(int skipCount)
@@ -244,11 +255,12 @@ namespace Machina.Emitter
         }
         void Compare(InstructionKind8086 setInstruction)
         {
-            // add optimizations like: omit when are constants
             var second = Pop();
             var first = Pop();
             if (second.IsConstant && first.IsConstant)
                 throw new ArgumentException("Impossible to compare two constants");
+            if (first.IsMemoryReference)
+                LookAtMemoryReference(ref second);
             EmitInstruction(InstructionKind8086.cmp, first, second);
             var fetch = _registers.FetchNext8();
             EmitInstruction(setInstruction, Value.Register(fetch));

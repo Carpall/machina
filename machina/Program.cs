@@ -8,10 +8,12 @@ emitter.EmitFunctionLabel32("main",  0);
 emitter.SavePreviousFrame64();
 emitter.DeclareStackAllocation64(0);
 
-emitter.Load(Value.Constant(1));
-emitter.EmitAddInt32();
+emitter.Load(Value.Constant(7));
+emitter.EmitStoreInStack64(-4, AssemblyType.QWORD);
+emitter.EmitLoadFromStack64(-4, AssemblyType.QWORD);
+emitter.EmitLoadFromStack64(-4, AssemblyType.QWORD);
+emitter.EmitCompareEQ();
 
-emitter.RestorePreviousFrame64();
 emitter.EmitRetInt32();
 
 Console.WriteLine(emitter.DumpAssembly());

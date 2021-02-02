@@ -6,10 +6,11 @@ namespace Machina.Emitter
     {
         public int Index { get; set; }
         public Enum MemoryPointer { get; set; }
+        public AssemblyType AssemblyType { get; set; }
 
         public override string ToString()
         {
-            return $"[{MemoryPointer}{(Index > 0 ? $"+{Index}" : Index)}]";
+            return $"{AssemblyType.ToString().ToLower()} ptr [{MemoryPointer}{(Index > 0 ? $"+{Index}" : Index)}]";
         }
     }
 }
