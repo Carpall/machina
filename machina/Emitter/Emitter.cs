@@ -67,6 +67,17 @@ namespace Machina.Emitter
                 if ((size % 16) == 0)
                     return size.ToString();
         }
+
+        Value Peek()
+        {
+            return Pop(false);
+        }
+        public void Duplicate32()
+        {
+            var fetch = Value.Register(_registers.FetchNext32());
+            EmitMove(fetch, Peek());
+            Load(fetch);
+        }
         public void DeclareStackAllocation64(int size = 0)
         {
             if (size != 0)
@@ -90,17 +101,18 @@ namespace Machina.Emitter
         {
             _stack.Add(Value.Constant(value));
         }
-        Value Pop()
+        Value Pop(bool remove = true)
         {
             var p = _stack[^1];
-            _stack.RemoveAt(_stack.Count - 1);
-            if (p.IsInstruction) {
-                var fetch = Value.Register(_registers.FetchNext64());
-                EmitInstruction((InstructionKind8086)p.Body, fetch);
-                _registers.AdvanceCounter(-1);
-                return fetch;
-            }
-            return p;
+            if (remove) 
+                _stack.RemoveAt(_stack.Count - 1);
+            if (!p.IsInstruction) return p;
+            
+            var fetch = Value.Register(_registers.FetchNext64());
+            EmitInstruction((InstructionKind8086)p.Body, fetch);
+            _registers.AdvanceCounter(-1);
+            
+            return fetch;
         }
 
         void EmitMove(Value dest, Value source)
@@ -133,7 +145,7 @@ namespace Machina.Emitter
         {
             EmitInstruction(InstructionKind8086.leave);
         }
-        public void LookAtMemoryReference(ref Value value)
+        void LookAtMemoryReference(ref Value value)
         {
             if (!value.IsMemoryReference) return;
             
@@ -194,19 +206,20 @@ namespace Machina.Emitter
         {
             EmitOpInt32(InstructionKind8086.idiv);
         }
-        public void EmitRetInt32()
+        public void EmitRetInt32(bool restoreFrame = true)
         {
             EmitMove(Value.Register(RegistersBag8086.ReturnRegister32), Pop());
-            EmitRetVoid();
+            EmitRetVoid(restoreFrame);
         }
-        public void EmitRetInt64()
+        public void EmitRetInt64(bool restoreFrame = true)
         {
             EmitMove(Value.Register(RegistersBag8086.ReturnRegister64), Pop());
-            EmitRetVoid();
+            EmitRetVoid(restoreFrame);
         }
-        public void EmitRetVoid()
+        public void EmitRetVoid(bool restoreFrame = true)
         {
-            RestorePreviousFrame64();
+            if (restoreFrame)
+                RestorePreviousFrame64();
             EmitInstruction(InstructionKind8086.ret);
         }
         void SaveStackItems(int skipCount)
@@ -253,7 +266,7 @@ namespace Machina.Emitter
             EmitInstruction(InstructionKind8086.call, Value.Constant(name));
             Load(Value.Register(RegistersBag8086.ReturnRegister64));
         }
-        void Compare(InstructionKind8086 setInstruction)
+        void Compare()
         {
             var second = Pop();
             var first = Pop();
@@ -262,6 +275,10 @@ namespace Machina.Emitter
             if (first.IsMemoryReference)
                 LookAtMemoryReference(ref second);
             EmitInstruction(InstructionKind8086.cmp, first, second);
+        }
+        void Compare(InstructionKind8086 setInstruction)
+        {
+            Compare();
             var fetch = _registers.FetchNext8();
             EmitInstruction(setInstruction, Value.Register(fetch));
             Load(Value.Register(fetch));
@@ -281,6 +298,37 @@ namespace Machina.Emitter
         public void EmitCompareLS()
         {
             Compare(InstructionKind8086.setl);
+        }
+        
+        void EmitCompareJump(Instruction8086 instruction)
+        {
+            Compare();
+            EmitInstruction(instruction);
+        }
+
+        Instruction8086 MakeJump(InstructionKind8086 kind, string name)
+        {
+            return new Instruction8086()
+            {
+                Kind = kind,
+                Arg0 = Value.Constant(name)
+            };
+        }
+        public void EmitCompareJumpEQ(string name)
+        {
+            EmitCompareJump(MakeJump(InstructionKind8086.je, name));
+        }
+        public void EmitCompareJumpNEQ(string name)
+        {
+            EmitCompareJump(MakeJump(InstructionKind8086.jne, name));
+        }
+        public void EmitCompareGT(string name)
+        {
+            EmitCompareJump(MakeJump(InstructionKind8086.jg, name));
+        }
+        public void EmitCompareLS(string name)
+        {
+            EmitCompareJump(MakeJump(InstructionKind8086.jl, name));
         }
     }
 }

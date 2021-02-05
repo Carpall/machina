@@ -1,21 +1,42 @@
 ﻿using System;
 using Machina.Emitter;
 
-var emitter = new Machina.Emitter.Emitter("test");
+#if DEBUG
+try
+{
+#endif
+    var emitter = new Machina.Emitter.Emitter("test");
 
-emitter.EmitFunctionLabel32("main",  0);
+    emitter.EmitFunctionLabel32("main", 0);
 
-emitter.SavePreviousFrame64();
-emitter.DeclareStackAllocation64(0);
+    // emitter.SavePreviousFrame64();
+    // emitter.DeclareStackAllocation64(0);
+    
+    emitter.Load(10);
+    emitter.Load(1);
+    emitter.EmitAddInt32();
+    emitter.Duplicate32();
+    emitter.EmitCompareJumpNEQ("exit");
 
-emitter.Load(Value.Constant(7));
-emitter.EmitStoreInStack64(-4, AssemblyType.QWORD);
-emitter.EmitLoadFromStack64(-4, AssemblyType.QWORD);
-emitter.EmitLoadFromStack64(-4, AssemblyType.QWORD);
-emitter.EmitCompareEQ();
+    emitter.Load(0);
+    
+    emitter.EmitRetInt32(false);
+    
+    emitter.EmitLabel("exit");
+    
+    emitter.Load(1);
+    
+    emitter.EmitRetInt32(false);
 
-emitter.EmitRetInt32();
-
-Console.WriteLine(emitter.DumpAssembly());
-
-Console.ReadKey();
+    Console.WriteLine(emitter.DumpAssembly());
+#if DEBUG
+}
+catch (Exception e)
+{
+    Console.WriteLine(e);
+}
+finally
+{
+    Console.ReadKey();
+}
+#endif
