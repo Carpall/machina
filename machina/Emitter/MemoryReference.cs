@@ -2,7 +2,7 @@ using System;
 
 namespace Machina.Emitter
 {
-    struct MemoryReference
+    public struct MemoryReference
     {
         public int Index { get; set; }
         public Enum MemoryPointer { get; set; }

@@ -2,7 +2,7 @@ using System;
 
 namespace Machina.Emitter
 {
-    struct RegisterConversion
+    public struct RegisterConversion
     {
         public AssemblyType Type { get; set; }
         public string ToString(Enum registerKind)

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Machina.Emitter
 {
-    enum ValueKind
+    public enum ValueKind
     {
         Empty,
         Constant,
@@ -12,7 +12,7 @@ namespace Machina.Emitter
         Instruction,
         MemoryReference
     }
-    struct Value
+    public struct Value
     {
         public object Body { get; set; }
         public ValueKind Kind { get; set; }

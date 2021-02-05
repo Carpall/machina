@@ -2,7 +2,7 @@ using System;
 
 namespace Machina.Emitter
 {
-    struct RegisterValue
+    public struct RegisterValue
     {
         public Enum RegisterKind { get; set; }
         public bool HasConversion { get; set; }

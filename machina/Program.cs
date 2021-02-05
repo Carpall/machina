@@ -1,34 +1,23 @@
 ﻿using System;
+using Machina.AssemblyBuilder;
 using Machina.Emitter;
 
 #if DEBUG
 try
 {
 #endif
-    var emitter = new Machina.Emitter.Emitter("test");
+    var builder = new AssemblyImage("test");
 
-    emitter.EmitFunctionLabel32("main", 0);
+    var main = new FunctionBuilder64("main", Array.Empty<MachinaType>(), MachinaType.Int);
+    
+    main.LoadInt(10); // stack: [10]
+    main.LoadInt(1); // [10, 1]
+    main.AddInt();
+    main.Ret();
 
-    // emitter.SavePreviousFrame64();
-    // emitter.DeclareStackAllocation64(0);
-    
-    emitter.Load(10);
-    emitter.Load(1);
-    emitter.EmitAddInt32();
-    emitter.Duplicate32();
-    emitter.EmitCompareJumpNEQ("exit");
+    builder.DefineFunction(main); 
 
-    emitter.Load(0);
-    
-    emitter.EmitRetInt32(false);
-    
-    emitter.EmitLabel("exit");
-    
-    emitter.Load(1);
-    
-    emitter.EmitRetInt32(false);
-
-    Console.WriteLine(emitter.DumpAssembly());
+    Console.WriteLine(builder.DumpAssembly());
 #if DEBUG
 }
 catch (Exception e)

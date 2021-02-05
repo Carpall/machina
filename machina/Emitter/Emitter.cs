@@ -22,6 +22,21 @@ namespace Machina.Emitter
             _assembly.EntryPoint = EntryPointName;
         }
 
+        public InstructionBuilder8086 Assemble()
+        {
+            return _assembly;
+        }
+        public int CurrentIndex()
+        {
+            return _assembly.Builder.Count;
+        }
+        public Instruction8086 this[int index]
+        {
+            get
+            {
+                return _assembly.Builder[index];
+            }
+        }
         public string DumpAssembly(bool generateTextSection = true)
         {
             return _assembly.DumpAssembly(generateTextSection);
@@ -96,10 +111,6 @@ namespace Machina.Emitter
         public void Load(Value value)
         {
             _stack.Add(value);
-        }
-        public void Load(int value)
-        {
-            _stack.Add(Value.Constant(value));
         }
         Value Pop(bool remove = true)
         {

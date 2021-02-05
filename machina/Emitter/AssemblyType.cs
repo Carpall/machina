@@ -1,6 +1,6 @@
 namespace Machina.Emitter
 {
-    enum AssemblyType
+    public enum AssemblyType
     {
         BYTE,
         DWORD,

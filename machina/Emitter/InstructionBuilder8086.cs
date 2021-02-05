@@ -4,18 +4,19 @@ using System.Text;
 
 namespace Machina.Emitter
 {
-    class InstructionBuilder8086
+    public class InstructionBuilder8086
     {
         public string EntryPoint { private get; set; }
         public string FileName { private get; set; }
 
-        readonly List<Instruction8086> _builder = new();
+        public readonly List<Instruction8086> Builder = new();
         const string Indent = "   ";
 
         public void EmitInstruction(Instruction8086 instruction)
         {
-            _builder.Add(instruction);
+            Builder.Add(instruction);
         }
+        
         public string DumpAssembly(bool generateText = true)
         {
             StringBuilder assembly = new();
@@ -25,16 +26,16 @@ namespace Machina.Emitter
    .globl {EntryPoint}
    .intel_syntax
 ");
-            for (int i = 0; i < _builder.Count; i++) {
-                var label = _builder[i].Label;
-                if (_builder[i].Kind == InstructionKind8086.Label)
+            for (int i = 0; i < Builder.Count; i++) {
+                var label = Builder[i].Label;
+                if (Builder[i].Kind == InstructionKind8086.Label)
                 {
                     assembly.AppendLine($"{label}:");
                     continue;
                 }
-                var opcode = _builder[i].Kind;
-                var arg0 = _builder[i].Arg0;
-                var arg1 = _builder[i].Arg1;
+                var opcode = Builder[i].Kind;
+                var arg0 = Builder[i].Arg0;
+                var arg1 = Builder[i].Arg1;
                 assembly.AppendLine(
                     $"{Indent}{(!string.IsNullOrEmpty(label) ? $"{label}: " : "")}{opcode} {arg0}{(!arg1.IsEmpty ? $", {arg1}" : "")}"
                 );

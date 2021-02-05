@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Machina.Emitter
 {
-    enum InstructionKind8086
+    public enum InstructionKind8086
     {
         Label,
         mov,

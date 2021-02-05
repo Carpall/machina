@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Machina.Emitter
 {
-    struct Instruction8086
+    public struct Instruction8086
     {
         public string Label { get; set; }
         public InstructionKind8086 Kind { get; set; }
