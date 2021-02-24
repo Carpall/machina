@@ -1,5 +1,3 @@
-machina/.idea/
-machina/bin/
-machina/obj/
-machina/machina.sln
-*.exe
+bin/
+obj/
+.vs/
