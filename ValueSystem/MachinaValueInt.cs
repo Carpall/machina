@@ -6,8 +6,9 @@ namespace Machina.ValueSystem
     struct MachinaValueInt : IMachinaValue
     {
         public IMachinaType Type { get; }
-        public object Value { get; }
-        public bool IsConst { get; }
+        public ulong Value { get; }
+        public bool IsConst => true;
+        public bool CanBePointed => false;
 
         public MachinaValueInt(IMachinaType type, ulong value)
         {
@@ -16,17 +17,11 @@ namespace Machina.ValueSystem
 
             Type = type;
             Value = value;
-            IsConst = true;
         }
 
-        public MachinaValueInt(IMachinaType type, string name)
+        public string GetCValue()
         {
-            if (type.Kind != TypeKind.Int)
-                throw new ArgumentException("non int type");
-
-            Type = type;
-            Value = name;
-            IsConst = false;
+            return $"({Type.GetCType()}){Value}";
         }
     }
 }

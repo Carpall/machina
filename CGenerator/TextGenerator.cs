@@ -59,10 +59,7 @@ namespace Machina.CGenerator
             Write(identifier.Name);
             WriteMatchedParenthesis('(', string.Join(", ", parameters));
             if (!hasBody)
-            {
                 WriteSemicolon();
-                NewLine();
-            }
         }
 
         public void WriteSemicolon()
@@ -75,12 +72,12 @@ namespace Machina.CGenerator
             Write($"\"{text}\"");
         }
 
-        private void WriteMatchedParenthesis(char par, string text)
+        public void WriteMatchedParenthesis(char par, string text)
         {
             Write($"{par}{text}{MatchOppositeParenthesis(par)}");
         }
 
-        private void Write(string text)
+        public void Write(string text)
         {
             _code.Append(text);
         }
@@ -100,7 +97,7 @@ namespace Machina.CGenerator
             Write($"{new string(' ', BodyIndent)}");
         }
 
-        public void WriteStructPrototype(string name, bool hasBody)
+        public void WriteStructurePrototype(string name, bool hasBody)
         {
             Write(StructKeyword);
             Space();
@@ -127,7 +124,6 @@ namespace Machina.CGenerator
 
         public void LinkTextgenerator(TextGenerator generator)
         {
-            NewLine();
             Write(generator.GetCode());
         }
 

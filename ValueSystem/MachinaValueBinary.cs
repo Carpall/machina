@@ -9,6 +9,7 @@ namespace Machina.ValueSystem
         public IMachinaValue Right { get; }
         public IMachinaType Type => new MachinaTypeExpression(Left.Type);
         public bool IsConst => false;
+        public bool CanBePointed => false;
 
         public MachinaValueBinary(IMachinaValue value1, IMachinaValue value2, BinaryOperator binaryoperator)
         {
@@ -30,9 +31,9 @@ namespace Machina.ValueSystem
             };
         }
 
-        public override string ToString()
+        public string GetCValue()
         {
-            return /*$"(({Type.GetCType()})*/$"({Left.GetCValue()} {GetBinaryOperator(BinaryOperator)} {Right.GetCValue()})";
+            return $"({Left.GetCValue()} {GetBinaryOperator(BinaryOperator)} {Right.GetCValue()})";
         }
     }
 }

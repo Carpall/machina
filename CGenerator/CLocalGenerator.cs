@@ -29,6 +29,24 @@ namespace Machina.CGenerator
             _local.WriteValue(statement.Value);
         }
 
+        private void GenerateCallStatement(CCallStatement statement)
+        {
+            _local.Write(statement.Identifier.Name);
+            var parameters = "";
+
+            for (int i = 0; i < statement.Parameters.Length; i++)
+            {
+                if (i > 0)
+                    parameters += ", ";
+
+                parameters += statement.Parameters[i].GetCValue();
+            }
+
+            _local.WriteMatchedParenthesis('(', parameters);
+
+            _local.WriteSemicolon();
+        }
+
         private void RecognizeStatement(ICStatement statement)
         {
             _local.Indent();
@@ -43,6 +61,9 @@ namespace Machina.CGenerator
                     break;
                 case CAssignmentStatement assignmentstatement:
                     GenerateAssignmentStatement(assignmentstatement);
+                    break;
+                case CCallStatement callstatement:
+                    GenerateCallStatement(callstatement);
                     break;
                 default:
                     throw new ArgumentException("invalid statement");

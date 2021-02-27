@@ -7,14 +7,15 @@ namespace Machina.ValueSystem
         public IMachinaType Type => new MachinaTypeBool();
         public IMachinaValue Value { get; }
         public bool IsConst { get; }
+        public bool CanBePointed => false;
 
         public MachinaValueNot(IMachinaValue value)
         {
             Value = value;
-            IsConst = false;
+            IsConst = value.IsConst;
         }
 
-        public override string ToString()
+        public string GetCValue()
         {
             return $"!{Value.GetCValue()}";
         }

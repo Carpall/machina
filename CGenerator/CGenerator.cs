@@ -1,4 +1,5 @@
 ﻿using Machina.CModels;
+using Machina.Models.Function;
 using System;
 using System.Collections.Generic;
 
@@ -29,6 +30,26 @@ namespace Machina.CGenerator
             _prototypes.Add(function.Prototype);
         }
 
+        public void GenerateStructure(CStructure structure)
+        {
+            var scope = new TextGenerator();
+
+            structure.Body.ForEach(field =>
+            {
+                scope.NewLine();
+                scope.Indent();
+                scope.Write(field.ToString());
+                scope.WriteSemicolon();
+                scope.NewLine();
+            });
+
+            _module.WriteStructurePrototype(structure.Prototype.Name.Name, true);
+
+            _module.WriteBlock(scope.GetCode());
+            _module.WriteSemicolon();
+            _module.NewLine();
+        }
+
         public void Include(CInclude include)
         {
             _includes.Add(include);
@@ -47,9 +68,11 @@ namespace Machina.CGenerator
                 if (prototype is CFunctionPrototype function)
                     result.WriteFunctionPrototype(function.ReturnType, function.Name, function.Parameters, false);
                 else if (prototype is CStructPrototype structp)
-                    result.WriteStructPrototype(structp.Name.Name, false);
+                    result.WriteStructurePrototype(structp.Name.Name, false);
                 else
                     throw new ArgumentException("invalid prototype");
+
+                result.NewLine();
             }
         }
 
@@ -58,8 +81,13 @@ namespace Machina.CGenerator
             var result = new TextGenerator();
 
             WriteIncludes(ref result);
+
             result.NewLine();
+            result.NewLine();
+            
             WritePrototypes(ref result);
+
+            result.NewLine();
             result.NewLine();
 
             result.LinkTextgenerator(_module);

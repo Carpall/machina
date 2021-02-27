@@ -24,5 +24,10 @@ namespace Machina.CModels
         {
             Statements.Add(new CAssignmentStatement(new CIdentifier(name), value));
         }
+
+        internal void CallFunction(CIdentifier identifier, IMachinaValue[] parameters)
+        {
+            Statements.Add(new CCallStatement(identifier, parameters));
+        }
     }
 }

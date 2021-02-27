@@ -6,17 +6,66 @@ using System.Collections.Generic;
 
 namespace Machina.Models.Function
 {
-    public class MachinaFunction
+    public class MachinaFunction : IMachinaValue
     {
         internal CFunction Function { get; }
+        public IMachinaType Type { get; }
+        public bool IsConst => true;
+        public bool CanBePointed => throw new NotImplementedException();
 
         private readonly Stack<IMachinaValue> _stack = new();
 
-        private readonly Dictionary<CIdentifier, IMachinaValue> _memory = new();
+        private readonly Dictionary<CIdentifier, MachinaValueMemory> _memory = new();
+
 
         public MachinaFunction(IMachinaType returnType, string name, List<CVariableInfo> parameters)
         {
-            Function = new(returnType, new CIdentifier(name), parameters, new());
+            Function = new(returnType, CIdentifier.FunctionPrototype(name, parameters), parameters, new());
+
+            parameters.ForEach(parameter =>  DeclareMemory(parameter.Type, parameter.Name.Name, false));
+
+            Type = new MachinaTypeFunctionPointer(Function.Prototype);
+        }
+
+        private MachinaValueCall Call(IMachinaType returntype, CIdentifier name, int paramcount)
+        {
+            var parameters = new List<IMachinaValue>();
+            for (int i = 0; i < paramcount; i++)
+                parameters.Add(Pop());
+
+            var @params = parameters.ToArray();
+
+            return new MachinaValueCall(returntype, name, @params);
+        }
+
+        public void CallFunction()
+        {
+            var function = Pop();
+
+            if (function is MachinaFunction func)
+            {
+                if (_stack.Count < func.Function.Prototype.Parameters.Count)
+                    throw new Exception("wrong parameter number");
+
+                Load(
+                    Call(
+                        func.Function.Prototype.ReturnType,
+                        func.Function.Prototype.Name,
+                        func.Function.Prototype.Parameters.Count)
+                    );
+            }
+            else
+                throw new Exception("called uncallable item");
+        }
+
+        public void LoadFunction(MachinaFunction function)
+        {
+            Load(function);
+        }
+
+        public void LoadConstInt32(int value)
+        {
+            Load(new MachinaValueInt(new MachinaTypeInt32(), (uint)value));
         }
 
         public void LoadBool(bool value)
@@ -24,11 +73,16 @@ namespace Machina.Models.Function
             Load(new MachinaValueBool(value));
         }
 
+        public void LoadAddressFromMemory(string name)
+        {
+            Load(new MachinaValuePointer(_memory[new CIdentifier(name)]));
+        }
+
         public void NotBool()
         {
             var boolean = Pop();
 
-            boolean.Type.ExpectType(new MachinaTypeBool());
+            boolean.Type.ExpectBoolType();
 
             if (boolean.IsConst)
                 boolean = new MachinaValueBool(!Convert.ToBoolean(Convert.ToInt32(((MachinaValueBool)boolean).Value)));
@@ -38,19 +92,19 @@ namespace Machina.Models.Function
             Load(boolean);
         }
 
-        public void LoadConstInt8(ushort value)
+        public void LoadConstInt8(short value)
         {
-            Load(new MachinaValueInt(new MachinaTypeInt8(), value));
+            Load(new MachinaValueInt(new MachinaTypeInt8(), (ushort)value));
         }
 
-        public void LoadConstInt32(uint value)
+        public void LoadConstInt(long value)
         {
-            Load(new MachinaValueInt(new MachinaTypeInt32(), value));
+            Load(new MachinaValueInt(new MachinaTypeIntPlatform(), (ulong)value));
         }
 
-        public void LoadConstInt64(ulong value)
+        public void LoadConstInt64(long value)
         {
-            Load(new MachinaValueInt(new MachinaTypeInt64(), value));
+            Load(new MachinaValueInt(new MachinaTypeInt64(), (ulong)value));
         }
 
         public void Load(IMachinaValue value)
@@ -63,10 +117,25 @@ namespace Machina.Models.Function
             return _stack.Pop();
         }
 
-        public void DeclareMemory(IMachinaValue value, string name)
+        private IMachinaType PeekType()
         {
-            Function.Body.DeclareVariable(value.Type, name);
-            _memory.Add(new CIdentifier(name), value);
+            return _stack.Peek().Type;
+        }
+
+        public void PopTop()
+        {
+            var value = Pop();
+            if (value is MachinaValueCall call)
+                Function.Body.CallFunction(call.Identifier, call.Parameters);
+        }
+
+        public void DeclareMemory(IMachinaType type, string name, bool declare = true)
+        {
+            var allocation = new MachinaValueMemory(type, name);
+
+            if (declare)
+                Function.Body.DeclareVariable(allocation.Type, name);
+            _memory.Add(new CIdentifier(name), allocation);
         }
 
         private IMachinaValue GetMemory(string name)
@@ -137,12 +206,22 @@ namespace Machina.Models.Function
 
         public void StoreMemory(string name)
         {
+            var type = PeekType();
+            type.ExpectType(_memory[new CIdentifier(name)].Type);
+
             Function.Body.AssignVariable(name, Pop());
         }
 
         public void LoadFromMemory(string name)
         {
             Load(GetMemory(name));
+        }
+
+        public void ReturnVoid()
+        {
+            Function.Prototype.ReturnType.ExpectVoidType();
+
+            Function.Body.Return(new MachinaValueVoid());
         }
 
         public void Return()
@@ -152,6 +231,11 @@ namespace Machina.Models.Function
             value.Type.ExpectType(Function.Prototype.ReturnType);
 
             Function.Body.Return(value);
+        }
+
+        public string GetCValue()
+        {
+            throw new NotImplementedException();
         }
     }
 }

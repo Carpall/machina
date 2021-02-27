@@ -5,6 +5,8 @@
         Int,
         Void,
         Expression,
-        Bool
+        Bool,
+        Pointer,
+        Struct
     }
 }

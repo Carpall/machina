@@ -6,5 +6,11 @@ namespace Machina.ValueSystem
     {
         public IMachinaType Type => new MachinaTypeVoid();
         public bool IsConst => true;
+        public bool CanBePointed => false;
+
+        public string GetCValue()
+        {
+            return "void";
+        }
     }
 }

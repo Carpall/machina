@@ -27,10 +27,20 @@ namespace Machina.TypeSystem
 
         public void ExpectIntType()
         {
-            /*if (Kind == TypeKind.Expression)
-                ((MachinaTypeExpression)this).ElementType.ExpectIntType();*/
             if (GetRealType().Kind != TypeKind.Int)
                 throw new ArgumentException("expected int type");
+        }
+
+        public void ExpectBoolType()
+        {
+            if (GetRealType().Kind != TypeKind.Bool)
+                throw new ArgumentException("expected bool type");
+        }
+
+        public void ExpectVoidType()
+        {
+            if (GetRealType().Kind != TypeKind.Void)
+                throw new ArgumentException("expected void type");
         }
     }
 }
